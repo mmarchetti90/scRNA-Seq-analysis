@@ -1309,8 +1309,13 @@ class tenx_scranseq:
     
     ### ------------------------------------ ###
 
-    def plot_gene_set_score(self, set_score, cells=[], samples=[], groups=[], clusters=[], dot_size=1.5):
+    def plot_gene_set_score(self, set_score, gene_set_name='', cells=[], samples=[], groups=[], clusters=[], dot_size=1.5):
         
+        # Check gene set name
+        if gene_set_name == '':
+
+            gene_set_name = 'Gene_Set'
+
         # Creating a filter for cells of interest
         if not len(cells):
         
@@ -1348,7 +1353,7 @@ class tenx_scranseq:
             legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Gene Set Expression')
             plt.xlabel('UMAP 1')
             plt.ylabel('UMAP 2')
-            plt.savefig("Gene_Set_Expression_UMAP-{}.png".format(n), bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+            plt.savefig("{}_Expression_UMAP-{}.png".format(gene_set_name, n), bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
             plt.close()
 
     ### ------------------------------------ ###
