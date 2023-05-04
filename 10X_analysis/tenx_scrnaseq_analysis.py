@@ -493,16 +493,21 @@ class tenx_scranseq:
                 # Using the cluster with lowest average levels for fitting a negative binomial distribution, then calculating the quantile at q = probability of failure = 0.99
                 cl = np.argmin(clusters_average)
                 
-                cell_subset = hashtag_counts.loc[hashtag_counts.GeneSymbol == hashtag, [False, False] + (cluster_labels == cl).tolist()].to_numpy()[0]
-                #threshold = np.percentile(cell_subset, 99) # A simpler way is to set the threshold as the 99th percentile
+                try:
+                    
+                    cell_subset = hashtag_counts.loc[hashtag_counts.GeneSymbol == hashtag, [False, False] + (cluster_labels == cl).tolist()].to_numpy()[0]
+                    cell_subset[cell_subset < 0] = 0 # Only positive values are considered by a negative binomial distribution
+                    
+                    log_mu, alpha = NegativeBinomial(cell_subset, np.ones_like(cell_subset)).fit(skip_hessian=True, disp=0).params
+                    mu = np.exp(log_mu)
+                    p = 1 / (1 + mu * alpha)
+                    n = mu * p / (1 - p)
+                    threshold = nbinom.ppf(0.99, n, p, loc=mu)
                 
-                cell_subset[cell_subset < 0] = 0 # Only positive values are considered by a neagtive binomial distribution
-                
-                log_mu, alpha = NegativeBinomial(cell_subset, np.ones_like(cell_subset)).fit(skip_hessian=True, disp=0).params
-                mu = np.exp(log_mu)
-                p = 1 / (1 + mu * alpha)
-                n = mu * p / (1 - p)
-                threshold = nbinom.ppf(0.99, n, p, loc=mu)
+                except:
+                    
+                    cell_subset = hashtag_counts.loc[hashtag_counts.GeneSymbol == hashtag, [False, False] + (cluster_labels == cl).tolist()].to_numpy()[0]
+                    threshold = np.percentile(cell_subset, 99) # A simpler way is to set the threshold as the 99th percentile
                 
                 classification[hashtag] = (hashtag_counts.loc[hashtag_counts.GeneSymbol == hashtag,].iloc[0, 2:] > threshold).to_list()
             
