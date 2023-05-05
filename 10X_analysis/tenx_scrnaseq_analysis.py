@@ -1161,9 +1161,10 @@ class tenx_scranseq:
 
         if not len(clusters):
         
-            clusters = np.array([True for _ in range(len(self.metadata))])
+            clusters = list(self.metadata.Clusters.unique())
+            clusters.sort()
         
-        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & clusters)
+        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & self.metadata.Clusters.isin(clusters))
         
         if "CellCyclePhase" not in self.metadata.columns:
             
@@ -1262,9 +1263,10 @@ class tenx_scranseq:
 
         if not len(clusters):
         
-            clusters = np.array([True for _ in range(len(self.metadata))])
+            clusters = list(self.metadata.Clusters.unique())
+            clusters.sort()
         
-        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & clusters)
+        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & self.metadata.Clusters.isin(clusters))
         
         # Extracting expression data for target_gene
         if target_gene not in list(self.raw_counts.GeneID) and target_gene not in list(self.raw_counts.GeneSymbol):
@@ -1336,9 +1338,10 @@ class tenx_scranseq:
 
         if not len(clusters):
         
-            clusters = np.array([True for _ in range(len(self.metadata))])
+            clusters = list(self.metadata.Clusters.unique())
+            clusters.sort()
         
-        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & clusters)
+        cell_filter = list(self.metadata.CellID.isin(cells) & self.metadata.CellID.isin(samples) & self.metadata.Group.isin(groups) & self.metadata.Clusters.isin(clusters))
         
         for i, (n, coords) in enumerate(self.umaps.items()):
 
