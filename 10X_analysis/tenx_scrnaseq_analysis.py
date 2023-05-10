@@ -445,15 +445,15 @@ class tenx_scranseq:
         counts_matrix = pd.DataFrame(counts_matrix)
 
         # Demultiplexing
-        if 'Antibody Capture' in feature_types:
+        if 'Multiplexing Capture' in feature_types:
             
             # Extracting hashtags counts
-            hashtag_num = np.unique(gene_ids[feature_types == 'Antibody Capture'])
-            hashtag_ids = np.unique(gene_names[feature_types == 'Antibody Capture'])
+            hashtag_num = np.unique(gene_ids[feature_types == 'Multiplexing Capture'])
+            hashtag_ids = np.unique(gene_names[feature_types == 'Multiplexing Capture'])
             
             hashtag_counts = counts_matrix.loc[counts_matrix.GeneID.isin(hashtag_num),]
             
-            counts_matrix = counts_matrix.loc[~counts_matrix.GeneID.isin(hashtag_num)]
+            counts_matrix = counts_matrix.loc[~counts_matrix.GeneID.isin(hashtag_num)] # Remove hashtags from counts matrix
             
             # Normalizing counts (centered log ratio)
             log_geometric_means = [(1 / len(h_counts)) * np.log(h_counts[h_counts != 0]).sum() for h_counts in hashtag_counts.iloc[:, 2:].to_numpy()]
