@@ -40,7 +40,7 @@ load_processed_data(file_name, file_dir='./')
 
 	file_dir
 					Location of the HDF5 file, as well as Pickle files where
-					the PCA and UMAP models are stored.
+					the PCA and UMAP models are stored
 					Default = './'
 
 /// ---------- ///
@@ -295,23 +295,23 @@ score_cell_cycle(g1pm_features, s_features, g2m_features, gene_pool=[], bins=50,
 
 	g1pm_features, s_features, g2m_features
 					Sets of gene IDs or symbols specific for G1 postmitotic
-					cells, S-phase cells, and G2M-phase cells.
+					cells, S-phase cells, and G2M-phase cells
 
 	gene_pool
-					Set of genes to use as random control.
-					If not specified, the whole feature space is used.
+					Set of genes to use as random control
+					If not specified, the whole feature space is used
 					Default = []
 
 	bins
 					Number specifying into how many sets the range of average
-					gene expression values should be divided into.
+					gene expression values should be divided into
 					For each target feature belonging to the gene set analyzed,
 					ctrl_genes_num genes will be randomly selected as controls
-					of matched expression.
+					of matched expression
 					Default = 50
 
 	ctrl_genes_num
-					Number of control genes to pick from each expression bin.
+					Number of control genes to pick from each expression bin
 					Default = 50
 
 /// ---------- ///
@@ -324,23 +324,23 @@ score_gene_set(gene_set, gene_pool=[], bins=50, ctrl_genes_num=50)
 	Attributes:
 
 	gene_set
-					Set of gene IDs or symbols of interest.
+					Set of gene IDs or symbols of interest
 
 	gene_pool
-					Set of genes to use as random control.
-					If not specified, the whole feature space is used.
+					Set of genes to use as random control
+					If not specified, the whole feature space is used
 					Default = []
 
 	bins
 					Number specifying into how many sets the range of average
-					gene expression values should be divided into.
+					gene expression values should be divided into
 					For each target feature belonging to the gene set analyzed,
 					ctrl_genes_num genes will be randomly selected as controls
-					of matched expression.
+					of matched expression
 					Default = 50
-			   
+
 	ctrl_genes_num
-					Number of control genes to pick from each expression bin.
+					Number of control genes to pick from each expression bin
 					Default = 50
 
 /// ---------- ///
@@ -491,5 +491,5 @@ plot_cell_cycle(cells=[], samples=[], groups=[], clusters=[], dot_size=1.5)
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5

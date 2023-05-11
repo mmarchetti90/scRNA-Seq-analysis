@@ -789,23 +789,23 @@ score_cell_cycle(self, g1pm_features, s_features, g2m_features, gene_pool=[], bi
 
 	g1pm_features, s_features, g2m_features
 					Sets of gene IDs or symbols specific for G1 postmitotic
-					cells, S-phase cells, and G2M-phase cells.
+					cells, S-phase cells, and G2M-phase cells
 
 	gene_pool
-					Set of genes to use as random control.
-					If not specified, the whole feature space is used.
+					Set of genes to use as random control
+					If not specified, the whole feature space is used
 					Default = []
 
 	bins
 					Number specifying into how many sets the range of average
-					gene expression values should be divided into.
+					gene expression values should be divided into
 					For each target feature belonging to the gene set analyzed,
 					ctrl_genes_num genes will be randomly selected as controls
-					of matched expression.
+					of matched expression
 					Default = 50
 
 	ctrl_genes_num
-					Number of control genes to pick from each expression bin.
+					Number of control genes to pick from each expression bin
 					Default = 50
 
 /// ---------- ///
@@ -829,23 +829,23 @@ score_gene_set(self, gene_set, gene_pool=[], bins=50, ctrl_genes_num=50)
 	Attributes:
 
 	gene_set
-					Set of gene IDs or symbols of interest.
+					Set of gene IDs or symbols of interest
 
 	gene_pool
-					Set of genes to use as random control.
-					If not specified, the whole feature space is used.
+					Set of genes to use as random control
+					If not specified, the whole feature space is used
 					Default = []
 
 	bins
 					Number specifying into how many sets the range of average
-					gene expression values should be divided into.
+					gene expression values should be divided into
 					For each target feature belonging to the gene set analyzed,
 					ctrl_genes_num genes will be randomly selected as controls
-					of matched expression.
+					of matched expression
 					Default = 50
 
 	ctrl_genes_num
-					Number of control genes to pick from each expression bin.
+					Number of control genes to pick from each expression bin
 					Default = 50
 
 /// ---------- ///
@@ -873,7 +873,7 @@ plot_cell_cycle(self, datasets=[], clusters=[], dot_size=1.5)
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5
 
 /// ---------- ///
@@ -893,7 +893,7 @@ plot_clusters(self, datasets=[], clusters=[], dot_size=1.5)
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5
 
 /// ---------- ///
@@ -913,7 +913,7 @@ plot_datasets(self, datasets=[], clusters=[], dot_size=1.5)
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5
 
 /// ---------- ///
@@ -936,7 +936,7 @@ plot_gene_expression(self, target_gene, datasets=[], clusters=[], dot_size=1.5)
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5
 
 /// ---------- ///
@@ -964,7 +964,7 @@ plot_gene_set_score(self, set_score, gene_set_name='', datasets=[], clusters=[],
 					Default = []
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5
 
 /// ---------- ///
@@ -993,5 +993,5 @@ plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5
 					Default = False
 
 	dot_size
-					Size of the scatterplor dots.
+					Size of the scatterplor dots
 					Default = 1.5

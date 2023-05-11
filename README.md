@@ -15,6 +15,11 @@
 
 	Python module for the integration and analysis of published datasets
 
+### gene_clustering
+
+	Python module for the clustering of genes in PCA space using Leiden algorithm
+	(i.e. same procedure used to cluster cells in 10X_analysis and integrated_analysis modules)
+
 /// --------------------------------------- ///
 
 ### NOTES
