@@ -575,15 +575,36 @@ class tenx_scranseq:
     
     ### ------------------------------------ ###
     
-    def normalize_counts(self, scale_factor=10000):
+    def normalize_counts(self, mode='PFlog1pPF'):
         
-        # Copying raw_counts matrix
-        self.normalized_counts = self.raw_counts.copy()
+        if mode not in ['Seurat', 'PFlog1pPF']:
+            
+            print('ERROR: unknown normalization method.\nAccepted values are "Seurat" and "PFlog1pPF"')
+
+        elif mode == 'Seurat':
+            
+            # LogNormalization, similar to Seurat's NormalizeData
+            scale_factor = 10000
+            counts_per_cell = np.array(self.normalized_counts.iloc[:, 2:].sum(axis = 0))
+            self.normalized_counts.iloc[:, 2:] = np.log1p(self.normalized_counts.iloc[:, 2:].div(counts_per_cell / scale_factor, axis = 1))
         
-        # LogNormalization, similar to Seurat's NormalizeData
-        scale_factor = 10000
-        counts_per_cell = np.array(self.normalized_counts.iloc[:, 2:].sum(axis = 0))
-        self.normalized_counts.iloc[:, 2:] = np.log1p(self.normalized_counts.iloc[:, 2:].div(counts_per_cell / scale_factor, axis = 1))
+        else:
+            
+            # Copying raw_counts matrix
+            self.normalized_counts = self.raw_counts.copy()
+            
+            # Proportional fitting
+            counts_per_cell = np.array(self.normalized_counts.iloc[:, 2:].sum(axis = 0))
+            median_counts = np.median(counts_per_cell)
+            self.normalized_counts.iloc[:, 2:] = self.normalized_counts.iloc[:, 2:].div(counts_per_cell / median_counts, axis = 1)
+            
+            # log1p
+            self.normalized_counts.iloc[:, 2:] = np.log1p(self.normalized_counts.iloc[:, 2:])
+            
+            # Proportional fitting
+            counts_per_cell = np.array(self.normalized_counts.iloc[:, 2:].sum(axis = 0))
+            median_counts = np.median(counts_per_cell)
+            self.normalized_counts.iloc[:, 2:] = self.normalized_counts.iloc[:, 2:].div(counts_per_cell / median_counts, axis = 1)
     
     ### ------------------------------------ ###
 

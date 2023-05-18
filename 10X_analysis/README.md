@@ -95,13 +95,16 @@ recreate_full_matrix(file_id, file, min_counts)
 
 normalize_counts(scale_factor=10000)
 
-	LogNormalizes raw counts, similar to Seurat's NormalizeData.
+	LogNormalizes raw counts.
+	Can choose between proportional fitting + log1p + proportional fitting, or
+	with a process similar to Seurat's NormalizeData.
 
 	Attributes:
 
-		scale_factor
-					Factor for library size scaling
-					Default = 10000
+		mode
+					Normalization method
+					Possible values are 'Seurat' and 'PFlog1pPF'
+					Default = 'PFlog1pPF'
 
 /// ---------- ///
 
