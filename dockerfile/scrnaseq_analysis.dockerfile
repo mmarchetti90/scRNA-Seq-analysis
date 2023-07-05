@@ -25,9 +25,10 @@ RUN mamba install -y \
     matplotlib \
     numpy \
     pandas \
-    seaborn \
+    scanorama \
     scipy \
     scikit-learn \
+    seaborn \
     statsmodels \
     umap-learn && \
     conda clean -afty
