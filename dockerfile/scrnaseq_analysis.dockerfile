@@ -21,7 +21,7 @@ RUN conda install -y mamba
 # Installing packages
 RUN mamba install -y \
     h5py \
-    igraph \
+    python-igraph \
     matplotlib \
     numpy \
     pandas \
