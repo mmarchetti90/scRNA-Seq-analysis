@@ -2009,6 +2009,7 @@ class integrated_analysis:
             # N.B. Could have used the .mean() method, but for some reason it kept returning the wrong results (so did the .sum() method)
             #gene_means = np.array([self.scale_features(self.all_data[:, self.all_genes.index(g)]).mean(axis=0)[0] for g in gene_pool])
             gene_means = np.array([sum(self.scale_features(self.all_data[:, self.all_genes.index(g)])) / self.all_data.shape[0] for g in gene_pool])
+            gene_means = gene_means.flatten() # Reshaping to same as would results from if statement above
         
         # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
         bin_size = len(gene_means) // bins
