@@ -1020,19 +1020,19 @@ class integrated_analysis:
             # Scale features for a subset of cells
             all_data_subset = self.scale_features(all_data[i * self.max_cells_in_memory : (i + 1) * self.max_cells_in_memory,], gene_mean, gene_std)
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells) else b'')
             scaled_out.write(out_text)
             
             # PCA transform
             all_data_subset = pca_model.transform(all_data_subset)
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells) else b'')
             pca_out.write(out_text)
             
             # UMAP transform
             all_data_subset = umap_model.transform(all_data_subset[:, :optimal_pca_components])
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells) else b'')
             umap_out.write(out_text)
         
         # Close files
@@ -1125,7 +1125,7 @@ class integrated_analysis:
             # UMAP transform
             umap_data_subset = umap_model.transform(pca_data[i * self.max_cells_in_memory : (i + 1) * self.max_cells_in_memory,])
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in umap_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i < pca_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if (i > 0 and i < pca_data.shape[0] // self.max_cells) else b'')
             umap_out.write(out_text)
         
         # Close files
@@ -1357,7 +1357,7 @@ class integrated_analysis:
         self.cluster_markers_dir = cluster_markers_dir
         
         # Init results table
-        cluster_markers = {"cluster" : [], "gene_name" : [], "cluster_expression" : [], "other_clusters_expression" : [], "log2FC" : [], "pval" : [], "padj" : []}
+        cluster_markers = {"cluster" : [], "gene_name" : [], "cluster_pct" : [], "other_clusters_pct" : [], "cluster_expression" : [], "other_clusters_expression" : [], "log2FC" : [], "pval" : [], "padj" : []}
         
         # Get clusters ids
         clusters_id = np.sort(np.unique(self.clusters))
@@ -1375,10 +1375,12 @@ class integrated_analysis:
             
             print(f'Finding markers of cluster {cl}')
             
-            significant_genes_name, log2_fc, pop1_expression, pop2_expression, pvals, padjs = self.compare_populations(self.all_genes, self.all_data, cluster_cells, other_cells, self.max_cells_in_memory, min_fc, min_pct)
+            significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs = self.compare_populations(self.all_genes, self.all_data, cluster_cells, other_cells, self.max_cells_in_memory, min_fc, min_pct)
             
             cluster_markers["cluster"].extend([cl for _ in range(len(significant_genes_name))])
             cluster_markers["gene_name"].extend(significant_genes_name)
+            cluster_markers["cluster_pct"].extend(pct_pop1)
+            cluster_markers["other_clusters_pct"].extend(pct_pop2)
             cluster_markers["cluster_expression"].extend(pop1_expression)
             cluster_markers["other_clusters_expression"].extend(pop2_expression)
             cluster_markers["log2FC"].extend(log2_fc)
@@ -1577,10 +1579,12 @@ class integrated_analysis:
         log2_fc = log2_fc[features_to_test][padjs < 0.05]
         pop1_expression = pop1_expression[features_to_test][padjs < 0.05]
         pop2_expression = pop2_expression[features_to_test][padjs < 0.05]
+        pct_pop1 = pct_pop1[features_to_test][padjs < 0.05]
+        pct_pop2 = pct_pop2[features_to_test][padjs < 0.05]
         pvals = pvals[padjs < 0.05]
         padjs = padjs[padjs < 0.05]
         
-        return significant_genes_name, log2_fc, pop1_expression, pop2_expression, pvals, padjs
+        return significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs
 
     ### ------------------------------------ ###
     ### TRAJECTORY ANALYSIS                  ###
@@ -2009,7 +2013,6 @@ class integrated_analysis:
             # N.B. Could have used the .mean() method, but for some reason it kept returning the wrong results (so did the .sum() method)
             #gene_means = np.array([self.scale_features(self.all_data[:, self.all_genes.index(g)]).mean(axis=0)[0] for g in gene_pool])
             gene_means = np.array([sum(self.scale_features(self.all_data[:, self.all_genes.index(g)])) / self.all_data.shape[0] for g in gene_pool])
-            gene_means = gene_means.flatten() # Reshaping to same as would results from if statement above
         
         # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
         bin_size = len(gene_means) // bins

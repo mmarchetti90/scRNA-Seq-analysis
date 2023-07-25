@@ -747,16 +747,18 @@ class tenx_scranseq:
         log2_fc = log2_fc[features_to_test][padjs < 0.05]
         pop1_expression = pop1_expression[features_to_test][padjs < 0.05]
         pop2_expression = pop2_expression[features_to_test][padjs < 0.05]
+        pct_pop1 = pct_pop1[features_to_test][padjs < 0.05]
+        pct_pop2 = pct_pop2[features_to_test][padjs < 0.05]
         pvals = pvals[padjs < 0.05]
         padjs = padjs[padjs < 0.05]
         
-        return significant_genes_id, significant_genes_name, log2_fc, pop1_expression, pop2_expression, pvals, padjs
+        return significant_genes_id, significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs
 
     ### ------------------------------------ ###
     
     def find_clusters_markers(self, min_fc=0.25, min_pct=0.1):
         
-        cluster_markers = {"Cluster" : [], "GeneID" : [], "GeneName" : [], "ClusterExpression" : [], "OtherClustersExpression" : [], "log2FC" : [], "pval" : [], "padj" : []}
+        cluster_markers = {"Cluster" : [], "GeneID" : [], "GeneName" : [], "cluster_pct" : [], "other_clusters_pct" : [], "ClusterExpression" : [], "OtherClustersExpression" : [], "log2FC" : [], "pval" : [], "padj" : []}
         
         clusters = self.metadata.Clusters.unique()
         clusters.sort()
@@ -768,11 +770,13 @@ class tenx_scranseq:
             cluster_cells = list(self.metadata.loc[self.metadata.Clusters == cl, "CellID"])
             other_cells = list(self.metadata.loc[self.metadata.Clusters != cl, "CellID"])
             
-            significant_genes_id, significant_genes_name, log2_fc, pop1_expression, pop2_expression, pvals, padjs = self.compare_populations(cluster_cells, other_cells, min_fc, min_pct)
+            significant_genes_id, significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs = self.compare_populations(cluster_cells, other_cells, min_fc, min_pct)
             
             cluster_markers["Cluster"].extend([cl for _ in range(len(significant_genes_id))])
             cluster_markers["GeneID"].extend(significant_genes_id)
             cluster_markers["GeneName"].extend(significant_genes_name)
+            cluster_markers["cluster_pct"].extend(pct_pop1)
+            cluster_markers["other_clusters_pct"].extend(pct_pop2)
             cluster_markers["ClusterExpression"].extend(pop1_expression)
             cluster_markers["OtherClustersExpression"].extend(pop2_expression)
             cluster_markers["log2FC"].extend(log2_fc)
