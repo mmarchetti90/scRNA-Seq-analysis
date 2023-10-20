@@ -1173,7 +1173,7 @@ class integrated_analysis:
             # Load PCA model
             if len(pca_model_path) > 0:
                 
-                pca_model = pk.load(open(pca_model_path, "rb"))
+                pca_model = pk.load(open(pca_model_path[0], "rb"))
                 
                 # Extract PCA optimal components
                 x0, x1 = 0, len(pca_model.explained_variance_) - 1
