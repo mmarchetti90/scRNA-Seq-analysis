@@ -434,7 +434,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def preprocess_samples(self, min_cell_raw_counts=500):
+    def preprocess_samples(self, min_cell_raw_counts=500, min_detected_genes=500):
         
         print('\n########################################')
         print('Preprocessing data')
@@ -476,6 +476,10 @@ class integrated_analysis:
                 
                 print(f'WARNING: could not read file {path}')
                 continue
+            
+            # Remove cells with number of genes detected < min_detected_genes
+            print('Removing cells with too few genes detected')
+            barcodes, matrix = self.remove_cells_with_few_genes(barcodes, matrix, min_detected_genes)
             
             # Normalize data
             if norm_type == 'none': # Performing PFlog1pPF normalization
@@ -536,7 +540,21 @@ class integrated_analysis:
     ### ------------------------------------ ###
     
     @staticmethod
-    def remove_cells_with_low_counts(brcs, mtx, min_cnts):
+    def remove_cells_with_few_genes(brcs, mtx, min_genes):
+        
+        # Find cells with less than min_cnts total raw counts from the count matrix
+        good_cells = np.asarray((mtx != 0).sum(axis=1) >= min_genes).reshape(-1)
+
+        # Removes bad cells from barcodes list and matrix
+        brcs = np.array(brcs)[good_cells].tolist()
+        mtx = mtx[good_cells, ]
+        
+        return brcs, mtx
+    
+    ### ------------------------------------ ###
+    
+    @staticmethod
+    def remove_cells_with_low_counts(brcs, mtx, min_cnts, min_genes):
         
         # Find cells with less than min_cnts total raw counts from the count matrix
         good_cells = np.asarray(mtx.sum(axis=1) >= min_cnts).reshape(-1)

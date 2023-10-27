@@ -37,7 +37,7 @@ class tenx_scranseq:
     ### DATA LOADING AND SAVING              ###
     ### ------------------------------------ ###
     
-    def import_raw_data(self, input_dir="./", min_counts=500):
+    def import_raw_data(self, input_dir="./", min_counts=500, min_detected_genes=500):
         
         # Loading file
         files = [f for f in listdir(input_dir) if f[-3:] == '.h5']
@@ -63,7 +63,7 @@ class tenx_scranseq:
         metadata = {"CellID" : [], "SampleID" : [], "Group" : []}
         for i in range(len(files)):
 
-            new_counts = self.recreate_full_matrix(samples_table.iloc[i,].SampleID, input_dir + '/' + samples_table.iloc[i,].FileName, min_counts)
+            new_counts = self.recreate_full_matrix(samples_table.iloc[i,].SampleID, input_dir + '/' + samples_table.iloc[i,].FileName, min_counts, min_detected_genes)
             metadata["CellID"].extend(new_counts.columns[2:])
             metadata["SampleID"].extend([samples_table.iloc[i,].SampleID for _ in range(len(new_counts.columns) - 2)])
             metadata["Group"].extend([samples_table.iloc[i,].SampleType for _ in range(len(new_counts.columns) - 2)])
@@ -403,7 +403,7 @@ class tenx_scranseq:
     ### ------------------------------------ ###
 
     @staticmethod
-    def recreate_full_matrix(file_id, file, min_counts):
+    def recreate_full_matrix(file_id, file, min_counts, min_detected_genes):
     
         # Reading HDF5 data
         h5_data = h5py.File(file, 'r')
@@ -423,10 +423,10 @@ class tenx_scranseq:
             counts = h5_data['matrix']['data'][start : stop]
             indexes = h5_data['matrix']['indices'][start : stop]
 
-            if counts.sum() < min_counts:
+            if counts.sum() < min_counts or counts.shape[0] < min_detected_genes:
             
                 continue
-
+            
             # Recreating full counts matrix
             full_counts = np.zeros(len(gene_ids))
             full_counts[indexes] = counts
@@ -851,7 +851,6 @@ class tenx_scranseq:
             # Finding most probable subclass
             subclass_probs = probs[ref_samples.reference_cell_type == best_class]
             best_subclass_prob = subclass_probs.max()
-            # FIX THIS
             best_subclass = list(cell_subclasses[ref_samples.reference_cell_type == best_class][subclass_probs == best_subclass_prob])[0]
             
             # Adding cluster info

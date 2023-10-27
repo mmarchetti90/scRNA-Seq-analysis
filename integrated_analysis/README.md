@@ -241,7 +241,7 @@ normalize_data(mtx, skip_first_proportional_fitting=False)
 
 /// ---------- ///
 
-preprocess_samples(min_cell_raw_counts=500)
+preprocess_samples(min_cell_raw_counts=500, min_detected_genes=500)
 
 	Main function to preprocess samples from dataset manifest file.
 
@@ -250,6 +250,10 @@ preprocess_samples(min_cell_raw_counts=500)
 	min_cell_raw_counts
 					Minimum number of total raw counts a cell must have to be
 					kept
+					Default = 500
+
+	min_detected_genes
+					Minimum number of genes a cell must have to be kept
 					Default = 500
 
 /// ---------- ///
@@ -263,6 +267,23 @@ proportional_fitting(mtx)
 
 	mtx
 					csr_sparse matrix.
+
+/// ---------- ///
+
+remove_cells_with_few_genes(brcs, mtx, min_genes)
+
+	Static method to remove cells with too few detected genes.
+
+	Attributes:
+
+	brcs
+					List of cell barcodes
+
+	mtx
+					csr_sparse matrix
+
+	min_genes
+					Min number of detected genes a cell must have
 
 /// ---------- ///
 

@@ -59,7 +59,7 @@ saveClassObject(object_name="scRNASeq_Analysis")
 
 /// ---------- ///
 
-import_raw_data(input_dir="./", min_counts=500)
+import_raw_data(input_dir="./", min_counts=500, min_detected_genes=500)
 
 	Import raw counts from CellRanger.
 
@@ -73,9 +73,13 @@ import_raw_data(input_dir="./", min_counts=500)
 					Minimum total count for individual cells
 					Default = 500
 
+		min_detected_genes
+					Minimum number of detected genes for individual cells
+					Default = 500
+
 /// ---------- ///
 
-recreate_full_matrix(file_id, file, min_counts)
+recreate_full_matrix(file_id, file, min_counts, min_detected_genes)
 
 	Static method to read raw counts HDF5 files from CellRanger and returns a
 	full matrix.
@@ -90,6 +94,9 @@ recreate_full_matrix(file_id, file, min_counts)
 
 		min_counts
 					Minimum total count for individual cells
+
+		min_detected_genes
+					Minimum number of detected genes for individual cells
 
 /// ---------- ///
 
