@@ -554,7 +554,7 @@ class integrated_analysis:
     ### ------------------------------------ ###
     
     @staticmethod
-    def remove_cells_with_low_counts(brcs, mtx, min_cnts, min_genes):
+    def remove_cells_with_low_counts(brcs, mtx, min_cnts):
         
         # Find cells with less than min_cnts total raw counts from the count matrix
         good_cells = np.asarray(mtx.sum(axis=1) >= min_cnts).reshape(-1)
