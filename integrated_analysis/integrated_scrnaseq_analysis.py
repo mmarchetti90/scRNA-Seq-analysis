@@ -1038,19 +1038,19 @@ class integrated_analysis:
             # Scale features for a subset of cells
             all_data_subset = self.scale_features(all_data[i * self.max_cells_in_memory : (i + 1) * self.max_cells_in_memory,], gene_mean, gene_std)
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if i < all_data.shape[0] // self.max_cells_in_memory else b'')
             scaled_out.write(out_text)
             
             # PCA transform
             all_data_subset = pca_model.transform(all_data_subset)
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if i < all_data.shape[0] // self.max_cells_in_memory else b'')
             pca_out.write(out_text)
             
             # UMAP transform
             all_data_subset = umap_model.transform(all_data_subset[:, :optimal_pca_components])
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i > 0 and i < all_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if i < all_data.shape[0] // self.max_cells_in_memory else b'')
             umap_out.write(out_text)
         
         # Close files
@@ -1143,7 +1143,7 @@ class integrated_analysis:
             # UMAP transform
             umap_data_subset = umap_model.transform(pca_data[i * self.max_cells_in_memory : (i + 1) * self.max_cells_in_memory,])
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in umap_data_subset])
-            out_text = out_text.encode() + (b'\n' if (i > 0 and i < pca_data.shape[0] // self.max_cells_in_memory) else b'')
+            out_text = out_text.encode() + (b'\n' if i < self.all_data.shape[0] // self.max_cells_in_memory else b'')
             umap_out.write(out_text)
         
         # Close files
@@ -2046,7 +2046,6 @@ class integrated_analysis:
         ctrl_indexes = []
         for index in set_order_indexes:
             
-            # Fix this. It's a numpy array, not a pandas df
             random_pool = np.where((expression_order >= (index - bin_size // 2)) &
                                    (expression_order <= (index + bin_size // 2)) &
                                    ~(np.isin(expression_order, set_order_indexes)))[0].tolist()
