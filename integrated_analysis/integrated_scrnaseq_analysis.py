@@ -392,15 +392,15 @@ class integrated_analysis:
         
         if features.shape[1] == 1:
             
-            features = features.iloc[:, 0].to_list()
-            
             features_type = []
+            
+            features = features.iloc[:, 0].to_list()
         
         else:
+        
+            features_type = features.iloc[:, 2].to_list()
             
             features = features.iloc[:, 1].to_list()
-            
-            features_type = features.iloc[:, 2].to_list()
             
         if features[0].lower() in ['gene', 'symbol', 'gene_symbol', 'genesymbol', 'gene_name', 'genename']:
             
