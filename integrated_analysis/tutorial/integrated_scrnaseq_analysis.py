@@ -31,7 +31,7 @@ TYPICAL PIPELINE:
 
 class integrated_analysis:
     
-    def __init__(self, max_cells_in_memory=100000, desired_feature_type='Gene Expression'):
+    def __init__(self, max_cells_in_memory=100000):
         
         # Creating color palette for up to 60 clusters
         cluster_colors = [(r/3, g/3, b/3) for r in range(4) for g in range(4) for b in range(4)][1:-1]
@@ -42,9 +42,6 @@ class integrated_analysis:
         
         # Setting maximum number of cells from sparse matrices to load in memory
         self.max_cells_in_memory = max_cells_in_memory
-        
-        # Setting the selected feature type ('Gene Expression' for RNA data or 'Peak' for ATAC data)
-        self.desired_feature_type = desired_feature_type
     
     ### ------------------------------------ ###
     ### DATA LOADING                         ###
@@ -106,7 +103,7 @@ class integrated_analysis:
             barcodes = self.read_barcodes_file(f'{main_dir}/{barcodes_path}')
             
             # Read genes list file
-            features, features_type = self.read_features_file(f'{main_dir}/{features_path}')
+            features = self.read_features_file(f'{main_dir}/{features_path}')
             
             # Get number of barcodes and features
             cells_num, genes_num = len(barcodes), len(features)
@@ -141,13 +138,6 @@ class integrated_analysis:
                     
                     # Update matrix
                     sparse_matrix[rows, columns] = data
-
-                # Filter features based on type
-                if len(features_type):
-                
-                    features_filter = (np.array(features_type) == self.desired_feature_type)
-                
-                    sparse_matrix = sparse_matrix[:, features_filter]
 
                 # Convert to csr_matrix
                 sparse_matrix = csr_matrix(sparse_matrix)
@@ -393,24 +383,16 @@ class integrated_analysis:
         if features.shape[1] == 1:
             
             features = features.iloc[:, 0].to_list()
-            
-            features_type = []
         
         else:
             
             features = features.iloc[:, 1].to_list()
             
-            features_type = features.iloc[:, 2].to_list()
-            
         if features[0].lower() in ['gene', 'symbol', 'gene_symbol', 'genesymbol', 'gene_name', 'genename']:
             
             features = features[1:]
-            
-            if len(features_type):
-                
-                features_type = features_type[1:]
         
-        return features, features_type
+        return features
     
     ### ------------------------------------ ###
     

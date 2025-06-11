@@ -28,6 +28,12 @@ Python 3.9.7+ &
 
 /// --------------------------------------- ///
 
+### NOTES
+
+* Designed for RNA Gene Expression data, but can handle ATAC data as well.
+
+/// --------------------------------------- ///
+
 ### CLASS INIT
 
 integrated_analysis class is initialized with the following parameter:
@@ -35,6 +41,10 @@ integrated_analysis class is initialized with the following parameter:
 	max_cells_in_memory
 					Maximum number of cells to load in full matrices
 					Default = 100000
+	desired_feature_type
+					The type of data to extract from MEX files in case of multiomics data (i.e. Gene Expression + ATAC)
+					Acceptable values are: 'Gene Expression' and 'Peaks'
+					Default = 'Gene Expression'
 
 /// --------------------------------------- ///
 
@@ -70,6 +80,8 @@ load_all_matrices_in_path(data_path)
 load_sparse_matrix(main_dir)
 
 	Loads a sparse matrix.
+	If data is from a multiome dataset, then the features are filtered for the
+	desired type stated at class initialization.
 
 	Attributes:
 

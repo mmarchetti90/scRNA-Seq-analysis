@@ -8,6 +8,7 @@
 #### 10X_analysis:
 
 	Python module for the analysis of 10X scRNASeq experiments processed with CellRanger
+	A tutorial is available
 
 /// ---------- ///
 
@@ -23,6 +24,8 @@
 /// --------------------------------------- ///
 
 ### NOTES
+
+- 10X_analysis and integrated_analysis are designed for RNA Gene Expression data, but can handle ATAC data as well.
 
 - For cell cycle analysis, the cell_cycle_genes_homo_sapiens.tsv and cell_cycle_genes_mus_musculus.tsv files report cell cycle gene sets for human and mouse data, respectively;
 

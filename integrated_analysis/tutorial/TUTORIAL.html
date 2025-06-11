@@ -1,0 +1,619 @@
+<html>
+<head>
+<style>
+#navbar {
+float: none;
+overflow: scroll;
+width: 500px;
+min-height: 250px;
+max-height: 500px;
+position: fixed;
+right: -450px;
+border: 2px solid black;
+border-radius: 5px 5px 5px 5px;
+}
+    
+#navbar:hover{
+right: 0px;
+background-color: white;
+}
+
+#navbar a {
+position: absolute;
+left: 0px;
+color: white;
+text-decoration: none;
+padding: 2px;
+border: 2px solid black;
+border-radius: 5px 5px 5px 5px;
+opacity: 0.5;
+white-space: nowrap;
+}
+
+#ch0_nav {
+font-family: Verdana, "sans-serif";
+top: 0px;
+font-size: 16px;
+background-color: #6a6a6a;
+}
+    
+#ch0_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch1_nav {
+font-family: Verdana, "sans-serif";
+top: 32px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch1_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch2_nav {
+font-family: Verdana, "sans-serif";
+top: 64px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch2_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch3_nav {
+font-family: Verdana, "sans-serif";
+top: 96px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch3_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch4_nav {
+font-family: Verdana, "sans-serif";
+top: 128px;
+font-size: 16px;
+background-color: #6a6a6a;
+}
+    
+#ch4_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch5_nav {
+font-family: Verdana, "sans-serif";
+top: 160px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch5_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch6_nav {
+font-family: Verdana, "sans-serif";
+top: 192px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch6_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch7_nav {
+font-family: Verdana, "sans-serif";
+top: 224px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch7_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch8_nav {
+font-family: Verdana, "sans-serif";
+top: 256px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch8_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch9_nav {
+font-family: Verdana, "sans-serif";
+top: 288px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch9_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch10_nav {
+font-family: Verdana, "sans-serif";
+top: 320px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch10_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch11_nav {
+font-family: Verdana, "sans-serif";
+top: 352px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch11_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch12_nav {
+font-family: Verdana, "sans-serif";
+top: 384px;
+font-size: 16px;
+background-color: #6a6a6a;
+}
+    
+#ch12_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch13_nav {
+font-family: Verdana, "sans-serif";
+top: 416px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch13_nav:hover {
+opacity: 1;
+background-color: #4c4cff;
+}
+
+#ch14_nav {
+font-family: Verdana, "sans-serif";
+top: 448px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch14_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch15_nav {
+font-family: Verdana, "sans-serif";
+top: 480px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch15_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch16_nav {
+font-family: Verdana, "sans-serif";
+top: 512px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch16_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch17_nav {
+font-family: Verdana, "sans-serif";
+top: 544px;
+font-size: 16px;
+background-color: #aaa;
+}
+    
+#ch17_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch18_nav {
+font-family: Verdana, "sans-serif";
+top: 576px;
+font-size: 16px;
+background-color: #6a6a6a;
+}
+    
+#ch18_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+#ch19_nav {
+font-family: Verdana, "sans-serif";
+top: 608px;
+font-size: 16px;
+background-color: #6a6a6a;
+}
+    
+#ch19_nav:hover {
+opacity: 1;
+background-color: #4c97ff;
+}
+
+h1 {
+    font-family: Verdana, "sans-serif";
+    color: black;
+    font-size: 250%;
+}
+
+h2 {
+    font-family: Verdana, "sans-serif";
+    color: black;
+    font-size: 200%;
+}
+
+h3 {
+    font-family: Verdana, "sans-serif";
+    color: blue;
+    font-size: 150%;
+}
+
+p {
+    font-family: Verdana, "sans-serif";
+    color: black;
+    font-size: 105%;
+}
+
+code {
+    font-family: Consolas,"courier new";
+    color: black;
+    background-color: #9fc5e8;
+    padding: 2px;
+    font-size: 105%;
+}
+</style>
+</head>
+<div id="navbar">
+
+<a href="#ch0" id="ch0_nav">0 - Intro</a>
+
+<a href="#ch1" id="ch1_nav">0.1 - Tutorial datasets</a>
+
+<a href="#ch2" id="ch2_nav">0.2 - Datasets formatting</a>
+
+<a href="#ch3" id="ch3_nav">0.3 - Pipeline input</a>
+
+<a href="#ch4" id="ch4_nav">1 - Data preprocessing</a>
+
+<a href="#ch5" id="ch5_nav">1.1 - Overview</a>
+
+<a href="#ch6" id="ch6_nav">1.2 - Setup</a>
+
+<a href="#ch7" id="ch7_nav">1.3 - Sample preprocessing</a>
+
+<a href="#ch8" id="ch8_nav">1.4 - Highly variable genes detection</a>
+
+<a href="#ch9" id="ch9_nav">1.5 - Datasets integration</a>
+
+<a href="#ch10" id="ch10_nav">1.6 - Dimensionality reduction</a>
+
+<a href="#ch11" id="ch11_nav">1.7 - Cell clustering</a>
+
+<a href="#ch12" id="ch12_nav">2 - Other analyses</a>
+
+<a href="#ch13" id="ch13_nav">2.1 - Trajectory analysis</a>
+
+<a href="#ch14" id="ch14_nav">2.2 - Differential expression between cell populations</a>
+
+<a href="#ch15" id="ch15_nav">2.3 - Marker signature analysis</a>
+
+<a href="#ch16" id="ch16_nav">2.4 - Cell Cycle Analysis</a>
+
+<a href="#ch17" id="ch17_nav">2.5 - Cell type identification</a>
+
+<a href="#ch18" id="ch18_nav">3 - Data subsetting</a>
+
+<a href="#ch19" id="ch19_nav">4 - Data (re)loading</a>
+
+</div>
+<body>
+<h1 id="integration-of-single-cell-rnaseq-datasets">Integration of single-cell RNASeq datasets</h1>
+<h2 id="ch0">0 - Intro</h2>
+<p>This tutorial will guide you in how to integrate and analyze datasets from different origins.
+The pipeline is written entirely in Python and requires several packages (see README file for details), but can also be run using a docker image (see dockerfile). Unfortunately, the Umap package in the docker image is not working properly, so any steps requiring Umap dimensionality reduction (i.e. mostly visualizations) cannot be run using the image. However, the data integration, which is the most intensive, does not require the Umap module. So, the docker image can be used on a HPC cluster to avoid installing the required Python packages.</p>
+<h3 id="ch1">0.1 - Tutorial datasets</h3>
+<p>This tutorial uses two published and publicly available datasets:</p>
+<ol>
+<li><p>GSE125188 (Zhao et al 2020), CD45+ cells isolated from liver from 3 patients. Data is raw counts stored in the MEX format used by 10X CellRanger. This is comprised of 3 tables for storing barcodes, features (e.g. genes), and counts as sparse matrices.</p>
+</li>
+<li><p>GSE115469 (MacParland et al 2018), total liver homogenate from 5 patients. Data is pooling normalized counts and stored in a large csv table.</p>
+</li>
+</ol>
+<p>Both datasets should be downloaded from GEO and stored locally as follows:
+For GSE125188, download the barcodes, genes, and matrix files and store them in a newly created GSE125188_cd45+ directory.
+For GSE115469, use the dataset_reformatting_scripts/reformat_GSE115469.py script to convert it to a format usable by the pipeline.</p>
+<h3 id="ch2">0.2 - Datasets formatting</h3>
+<p>The pipeline can processed data stored in two ways:</p>
+<ol>
+<li><p>Tab-separated matrices of counts, where the first column must be named &#39;GeneSymbol&#39; and contain (you guessed it) gene symbols. The following columns contain counts for individual cells. Can be compressed with gzip.</p>
+</li>
+<li><p>MEX format used by 10X CellRanger, with 3 needed files for barcodes, features (e.g. genes), and counts, which must contain the keywords &#39;barcodes&#39;, &#39;features&#39;, and &#39;matrix&#39; in their names, respectively. Can be compressed with gzip.</p>
+</li>
+</ol>
+<h3 id="ch3">0.3 - Pipeline input</h3>
+<p>The pipeline requires a datasets manifest as input, which specifies several fields of which 3 are required:</p>
+<ul>
+<li><p>data_label = label with which cells from a specific dataset will be named.</p>
+</li>
+<li><p>dataset_path = full path to the dataset (see below for details).</p>
+</li>
+<li><p>normalization = type of normalization used on the data. Can be any of:</p>
+<ul>
+<li>&quot;none&quot; = raw counts</li>
+<li>&quot;cpm&quot; = counts per million</li>
+<li>&quot;rpkm&quot; = reads per kilobase per million mapped reads</li>
+<li>&quot;pool_norm&quot; = pooling normalization</li>
+<li>&quot;pflog1ppf&quot; = proportional fitting followed by log1p followed by proportional fitting</li>
+</ul>
+</li>
+</ul>
+<p>Additional fields can be added, but will be ignored by the pipeline. See attached example for details.</p>
+<p>Paths for tab-separated matrices are full paths to the matrix itself, while paths for MEX formatted data must direct to the folder containing the barcodes, features, and counts tables.</p>
+<h2 id="ch4">1 - Data preprocessing</h2>
+<h3 id="ch5">1.1 - Overview</h3>
+<p>Typical data processing always includes the following several steps:</p>
+<ul>
+<li><p>Data normalization and filtering</p>
+</li>
+<li><p>Highly variable genes detection</p>
+</li>
+<li><p>Datasets integration</p>
+</li>
+<li><p>Dimensionality reduction</p>
+</li>
+<li><p>Cell clustering</p>
+</li>
+</ul>
+<h3 id="ch6">1.2 - Setup</h3>
+<p>First of all, import the package:</p>
+<pre><code>import integrated_scrnaseq_analysis as isa
+</code></pre>
+<p>Next, we need to initialize an integrated_analysis class, specifying how many cells we want to keep in memory at most. If your machine is struggling with large datasets, lowering this number can help reduce the memory footprint. Keep in mind that the pipeline stores count data in sparse matrices from the scipy package, which are quite memory efficient, so even a modest laptop can handle 100000 cells at a time.
+After initializing the class, the manifest is loaded.</p>
+<pre><code>analysis = isa.integrated_analysis(max_cells_in_memory=100000)
+
+analysis.load_manifest(manifest_path)
+</code></pre>
+<h3 id="ch7">1.3 - Sample preprocessing</h3>
+<p>In the first step of data preprocessing, for each dataset, cells with too few detected genes are discarded. Then data is normalized, except when a sample was already normalized using &#39;pflog1ppf&#39; or &#39;pool_norm&#39; methods. Note that if raw count data is available, then the min_cell_raw_counts parameter is also used to discard cells with too few reads. Lastly, preprocessed datasets are saved locally as sparse matrices in a newly created directory with prefix &#39;1_preprocessed_data&#39;. The path to this directory is stored as a string in the analysis.preprocessed_dir parameter.
+All these steps are wrapped in the following function.</p>
+<pre><code>analysis.preprocess_samples(min_cell_raw_counts=500, min_detected_genes=500)
+</code></pre>
+<p>Note that this step is quite time-consuming. However, since preprocessed, ready for integration, datasets are saved locally, there&#39;s no need to reprocess every dataset when new ones need to be added to the analysis. One could simply preprocess the new datasets, then store them in the same directory as others previously preprocessed, specifying this path in the analysis.preprocessed_dir variable.</p>
+<h3 id="ch8">1.4 - Highly variable genes detection</h3>
+<p>Prior to any downstream analysis, datasets will have to be integrated to reduce variability across samples (e.g. due to different batches or sample preps). This can be done using all the genes from the datasets, but focusing on genes that are highly variable (HVGs) yields better results.
+The find_common_highly_variable_genes function is used to find genes that are highly variable in each individual dataset. If the attribute &#39;union&#39; is set to True, then all HVGs from individual datasets will be combined, while with the default False value, only common ones across datasets will be used. It is recommended to set &#39;union&#39; to False to focus on common elements between the datasets, but one should use the union mode if too few genes are found. Alternatively, the find_highly_variable_genes_in_whole_dataset function can be used to find highly variable genes after merging all datasets into one if the find_common_highly_variable_genes returns few HVGs.
+The function will generate a list of HVGs stored as a list in the analysis.hvgs and locally in a newly created directory with prefix &#39;2_hvgs&#39;.
+The code snippet below also shows how to manually add genes to the analysis.hvgs list, in case some gene of interest is missing from it.</p>
+<pre><code>analysis.find_common_highly_variable_genes(data_path=analysis.preprocessed_dir, union_mode=True)
+analysis.hvgs += [&#39;CCR5&#39;, &#39;CCR6&#39;, &#39;CD3D&#39;, &#39;CD3E&#39;, &#39;CD3G&#39;, &#39;CD4&#39;]
+</code></pre>
+<h3 id="ch9">1.5 - Datasets integration</h3>
+<p>The Python package Scanorama is used for datasets integration. The integrate_data function is a wrapper for Scanorama and creates both PCA embeddings and corrected counts, which will be stored locally in a newly created directory with prefix &#39;3_integrated_data&#39;. Then, data is merged to a single dataset and saved locally in a newly created &#39;4_merged_data&#39; directory.
+The data_path attribute is required and specifies the location of the preprocessing directory. Note that this info is also stored in the analysis.preprocessed_dir, so an empty string can also be passed as data_path, in which case the function will use the analysis.preprocessed_dir path.
+The &#39;use_highly_variable_genes&#39; allows the datasets to be filtered for the HVGs detected above prior to integration. Then, to make sure that Scanorama only uses genes detected in all datasets (recommended), we need to set the &#39;union&#39; attribute to True.
+Scanorama will not only correct count matrices, but also generate PCA embedding. It is recommended to use these for downstream analyses (e.g. clustering, UMAP, ...), but by setting the use_scanorama_embeddings attribute to False, one can instead run a PCA at a later time.</p>
+<pre><code>analysis.integrate_data(data_path=&#39;&#39;, use_highly_variable_genes=True, union=False, use_scanorama_embeddings=True, max_pca_components=50)
+</code></pre>
+<h3 id="ch10">1.6 - Dimensionality reduction</h3>
+<p>Dimensionality reduction is another essential step in scRNASeq analysis and is run using the reduce_dimensions wrapper. This function comprises two nested steps: PCA and UMAP. Note that only the former is used by downstream analyses (e.g. clustering and trajectory analysis), while Umaps are only used for visualizations. Also, since dimensionality reduction relies on the Umap package, the Docker image will not be useful for this and next steps requiring Umap.
+If the use_integrated_pca attribute is set to True (default), then the PCA embeddings from Scanorama will be used. Otherwise, PCA will be run before Umap, in which case focusing on HVGs is recommended (set the use_highly_variable_genes attribute to True). If using Scanorama PCA embeddings, these are normally taken from the analysis.pca_data variable (derived from the analysis.integrate_data function), but, if this variable is missing (e.g. analysis was interruped and is now being continued), then the path to the file containing the Scanorama PCA embeddings can be specified using the integrated_pca_path attribute.
+In the code below, the reduce_dimensions function is called using Scanorama-generated PCA embeddings.</p>
+<pre><code>analysis.reduce_dimensions(use_integrated_pca=True)
+
+analysis.plot_datasets(dot_size=10)
+</code></pre>
+<h3 id="ch11">1.7 - Cell clustering</h3>
+<p>A graph-based approach with the Leiden algorithm is used for cell clustering. Note that modifying the n_neighbors attribute will affect the &#39;granularity&#39; of the clustering. Clusters will be stored in analysis.clusters and locally in a newly created directory with prefix &#39;6_clustering&#39;.
+The script below also shows how to find markers for each cluster, i.e. genes differentially expressed in the cells of a specific cluster vs all the other cells. Cluster markers will be stored in analysis.cluster_markers and locally in a newly created directory with prefix &#39;7_cluster_markers&#39;.</p>
+<pre><code>analysis.cluster_cells(n_neighbors=20)
+
+analysis.plot_clusters()
+
+analysis.find_clusters_markers(min_fc=0.25, min_pct=0.1, min_cells_in_cluster=50)
+</code></pre>
+<h2 id="ch12">2 - Other analyses</h2>
+<h3 id="ch13">2.1 - Trajectory analysis</h3>
+<p>The following code snippet is used to run a Kruskal Minimum Spanning Tree algorithm, creating a minimum spanning tree (i.e. a trajectory) to connect clusters based on their PCA transformed gene expression matrix. In short, a branching tree is generated which connects each cluster while minimizing total branch length. This is useful to have an idea of which cell populations are closer to one another in terms of gene expression. The create_mst function below will create a tree connecting all clusters, but the tree can also be created on a subset of clusters which can be passed as a list to the create_mst as the clusters_id attribute.
+The following functions, generate_pseudotime, can be used to visualize the distance of individual cells from the cluster at the base of the tree, giving a more visual idea of &#39;distance&#39; between cells&#39; expression.
+Data generated by these functions is stored in the analysis.branches and analysis.pseudotime variables and locally in a newly created directory with prefix &#39;9_trajectories&#39;.</p>
+<pre><code>analysis.create_mst()
+
+analysis.generate_pseudotime()
+
+analysis.plot_trajectories(pseudotime=False)
+analysis.plot_trajectories(pseudotime=True)
+</code></pre>
+<h3 id="ch14">2.2 - Differential expression between cell populations</h3>
+<p>The function below is used to compare two cell populations, finding differentially expressed genes. The two populations are defined by passing two filters, i.e. lists of booleans. This is useful, for example, to compare two different populations (e.g. healthy and diseased) within the same cluster.
+The example below compared cells from cluster 1 and 2. Indeed, the find_clusters_markers function described above is just a wrapper for compare_populations.
+Note that gene names and expressions have to be passed to the function. This information can be retrieved from the analysis.all_genes variables, respectively.</p>
+<pre><code>pop1 = (analysis.clusters == 1)
+pop2 = (analysis.clusters == 2)
+
+analysis.compare_populations(analysis.all_genes, analysis.all_data, pop1, pop2)
+</code></pre>
+<h3 id="ch15">2.3 - Marker signature analysis</h3>
+<p>When interested in a specific set of genes, the most intuitive approach is to plot each of them individually. The script below shows just that using the plot_gene_expression function.
+Another approach, easier to visualize, is to compute a score of the whole gene set. This is expressed for each individual cell as the ratio of the expression of the genes in the set and the expression of a set of random genes that, in the whole cell population, have similar levels to the genes in the set. So, the score indicates wheter the set is highly or lowly expressed in an individual cell compared to the general population. The score_gene_set returns is used for this purpose.</p>
+<pre><code>mait_gene_set = [&#39;CD3D&#39;, &#39;CD3E&#39;, &#39;CD3G&#39;, &#39;KLRB1&#39;, &#39;TRAV1-2&#39;]
+
+for gene in mait_gene_set:
+
+    analysis.plot_gene_expression(gene)
+
+mait_gene_set_scores = analysis.score_gene_set(mait_gene_set)
+
+analysis.plot_gene_set_score(mait_gene_set_scores, gene_set_name=&#39;mait_gene_set&#39;)
+</code></pre>
+<h3 id="ch16">2.4 - Cell Cycle Analysis</h3>
+<p>The score_cell_cycle function is a wrapper for the score_gene_set, calculating a score for G1 post-mitotic (G1PM), S, and G2M cell cycle genes (lists of genes have to be provided for each category). Then, the highest score is used to define the cell cycle phase for each cell.</p>
+<pre><code>analysis.score_cell_cycle(g1pm_genes, s_genes, g2m_genes)
+
+analysis.plot_cell_cycle()
+</code></pre>
+<h3 id="ch17">2.5 - Cell type identification</h3>
+<p>When searching for rare cell types, different approaches may yield different, possibly contradicting results. The find_specific_cell_type module can be used to combine different metrics to get a more robust prediction. The find_cell_type class can use both methods based on the signature of a selected gene set (AUC and gene set score) and methods based on a reference (euclidean distance and Pearson&#39;s and Spearman&#39;s correlation). Metrics are computed for each cluster, normalized to a 0-1 scale via softmax (or softmin for euclidean distance), then compounded for each cluster individually.</p>
+<p>Continuing with the integrated_analysis class analyzed above (&#39;analysis&#39;), we first need to load the find_specific_cell_type module, the gene set, and the reference expression data.</p>
+<pre><code>import find_specific_cell_type as fsct
+import pandas as pd
+
+# Mait min signature
+mait_gene_set = [&#39;CD3D&#39;, &#39;CD3E&#39;, &#39;CD3G&#39;, &#39;KLRB1&#39;, &#39;TRAV1-2&#39;]
+
+# Loading MAIT reference data
+ref_expr = pd.read_csv(&#39;mait_sc_reference.tsv.gz&#39;, sep=&#39;\t&#39;)
+ref_expr = ref_expr.loc[ref_expr.GeneName.isin(analysis.all_genes), ] # Filter ref_expr, keeping only genes in the &#39;analysis&#39; object
+</code></pre>
+<p>Then, the find_cell_type object is initialized using the counts, gene names, and clusters from the &#39;analysis&#39; object.</p>
+<pre><code>mait_search = fsct.find_cell_type(analysis.all_data, analysis.all_genes, analysis.clusters, mait_gene_set, ref_expr)
+</code></pre>
+<p>The analyze_data function is a wrapper to run the individual analysis.</p>
+<pre><code>results = mait_search.analyze_data(max_cells_in_memory=200000)
+results.to_csv(&#39;mait_search.tsv&#39;, sep=&#39;\t&#39;, index=False)
+</code></pre>
+<p>Lastly, the diagnostic_plots function can be invoked to plot useful visualizations of the individual and compounded metrics.</p>
+<pre><code>mait_search.diagnostic_plots()
+</code></pre>
+<h2 id="ch18">3 - Data subsetting</h2>
+<p>The data formats used by the pipeline make it easy to subset a population of cells to create a new dataset. This section will show you how to extract cells from cluster 1 of the &#39;analysis&#39; object described in the sections above and create a new dataset from it.</p>
+<p>First of all, we need to load a few more modules.</p>
+<pre><code>import gzip
+import numpy as np
+import pandas as pd
+from scipy.sparse import save_npz
+</code></pre>
+<p>Now we initialize a new integrated_analysis class.</p>
+<pre><code>analysis_subset = isa.integrated_analysis(max_cells_in_memory=100000)
+</code></pre>
+<p>Then we create a boolean filter to select cells from cluster 1.</p>
+<pre><code>cell_filter = (analysis.clusters == 1)
+</code></pre>
+<p>Now we can subset cells and their data using this filter.</p>
+<pre><code>all_data_subset = analysis.all_data[cell_filter,].copy()
+all_cells_subset = list(np.array(analysis.all_cells)[cell_filter])
+</code></pre>
+<p>We&#39;ll also have to create a new datasets_metadata object, which stores info about the datasets that make up the integrated data.</p>
+<pre><code>datasets_metadata_subset = {&#39;datasets_labels&#39; : [], &#39;cell_num&#39; : []}
+for dataset_label in analysis.datasets_metadata.datasets_labels:
+    
+    cell_num = sum([1 for cell in all_cells_subset if cell.endswith(dataset_label)])
+    
+    if cell_num &gt; 0:
+        
+        datasets_metadata_subset[&#39;datasets_labels&#39;].append(dataset_label)
+        datasets_metadata_subset[&#39;cell_num&#39;].append(cell_num)
+
+datasets_metadata_subset = isa.pd.DataFrame(datasets_metadata_subset)
+</code></pre>
+<p>The analysis_subset object can now be filled with the subset data above.</p>
+<pre><code>analysis_subset.all_data = all_data_subset.copy()
+analysis_subset.all_cells = all_cells_subset.copy()
+analysis_subset.all_genes = analysis.all_genes.copy() # Genes were not subset, so will just be copied
+analysis_subset.datasets_metadata = datasets_metadata_subset.copy()
+</code></pre>
+<p>We&#39;ll also need to create local copies so that we&#39;ll be able to reload the object at a later time (see next below).</p>
+<pre><code># Save metadata
+datasets_metadata_subset.to_csv(&#39;datasets_metadata.tsv.gz&#39;, sep=&#39;\t&#39;, index=None)
+
+# Save barcodes
+out_text = (&#39;\n&#39;.join(all_cells_subset)).encode()
+with gzip.open(&#39;all_barcodes.tsv.gz&#39;, &#39;wb&#39;) as output:
+    
+    output.write(out_text)
+
+# Save features
+out_text = (&#39;\n&#39;.join(analysis.all_genes)).encode()
+with gzip.open(&#39;all_features.tsv.gz&#39;, &#39;wb&#39;) as output:
+    
+    output.write(out_text)
+
+# Save matrix as npz
+save_npz(&#39;all_data_matrix.mtx.npz&#39;, all_data_subset, compressed=True)
+
+# Save matrix as 10X Genomics mtx file
+analysis.subset.csr_to_mtx(all_data_subset, out_name=&#39;all_data_matrix.mtx.gz&#39;, max_cells=100000)
+</code></pre>
+<p>Latly, if we want to reuse the PCA embeddings corrected during the integration step, we&#39;ll need to subset these as well. First, we&#39;ll load and subset the PCA data from the original &#39;analysis&#39; object</p>
+<pre><code>_, pca_data, _, _, _ = analysis.load_reduced_dimensions(analysis.lower_dimensions_dir)
+pca_data_subset = pca_data[cell_filter,].copy()
+</code></pre>
+<p>Then we&#39;ll add the pca_data_subset array to the analysis_subset object and invoke the reduce_dimensions function for Umap embedding and saving the reduced dimensions data and models locally.</p>
+<pre><code>analysis_subset.pca_data = pca_data_subset.copy()
+analysis_subset.reduce_dimensions(use_integrated_pca=True, integrated_pca_path=&#39;&#39;, neighbors=30, n_permutations=3)
+</code></pre>
+<h2 id="ch19">4 - Data (re)loading</h2>
+<p>The pipeline is modular, with different pieces of data saved to individual directories. This makes it easy to reload only what is needed or modify individual components.
+The scripts below show an example of how to reload individual components (note that file names are the default).</p>
+<pre><code># Init class
+analysis = isa.integrated_analysis(max_cells_in_memory=200000)
+
+# Load a merged dataset
+analysis.load_merged_datasets(&#39;/path/to/4_merged_data&#39;)
+
+# Set path to directory containing lower dimensions embeddings and models 
+analysis.lower_dimensions_dir = &#39;/path/to/5_lower_dimensions&#39;
+
+# Load HVGs list (saved in a text file, one gene per line)
+analysis.load_hvgs(&#39;/path/to/common_higly_variable_genes.tsv.gz&#39;)
+
+# Load clusters
+analysis.load_clusters(&#39;/path/to/cluster_embeddings.tsv.gz&#39;)
+
+# Load clusters markers
+analysis.load_cluster_markers(&#39;/path/to/cluster_markers.tsv.gz&#39;)
+
+# Set output directory for Umap plots
+analysis.plot_dir = &#39;./&#39;
+
+# Load minimal spanning tree (i.e. trajectory)
+analysis.load_trajectory_branches(&#39;/path/to/trajectory_analysis.txt&#39;)
+
+# Load cells&#39; pseudotime
+analysis.load_trajectory_pseudotime(&#39;/path/to/trajectory_analysis_pseudotime.tsv.gz&#39;)
+
+# Load cell cycle scores
+analysis.load_cell_cycle_scores(&#39;/path/to/cell_cycle_scores.tsv.gz&#39;)
+</code></pre>
+</body>
+</html>
