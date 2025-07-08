@@ -117,6 +117,15 @@ class integrated_analysis:
             if len(npz_file):
                 
                 sparse_matrix = load_npz(f'{main_dir}/{npz_file[0]}')
+                
+                # Filter features based on type
+                if len(features_type):
+                
+                    features_filter = (np.array(features_type) == self.desired_feature_type)
+                        
+                    features = np.array(features)[features_filter].tolist()
+                
+                    sparse_matrix = sparse_matrix[:, features_filter]
             
             else:
             
@@ -146,6 +155,8 @@ class integrated_analysis:
                 if len(features_type):
                 
                     features_filter = (np.array(features_type) == self.desired_feature_type)
+                    
+                    features = np.array(features)[features_filter].tolist()
                 
                     sparse_matrix = sparse_matrix[:, features_filter]
 
@@ -339,7 +350,7 @@ class integrated_analysis:
             if not len(all_genes):
                 
                 print('ERROR: list not valid')
-                return [], [], []
+                return [], [], [], []
         
         else:
             
@@ -1958,7 +1969,7 @@ class integrated_analysis:
         cell_cycle_dir, count = '10_cell_cycle', 0
         while cell_cycle_dir in listdir():
             
-            cell_cycle_dir = f'1_cell_cycle_{count}'
+            cell_cycle_dir = f'10_cell_cycle_{count}'
             count += 1
         
         mkdir(cell_cycle_dir)

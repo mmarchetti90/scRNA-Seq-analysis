@@ -5,7 +5,7 @@
 
 ### DEPENDENCIES
 
-Python 3.9.7+ &
+Python 3.9.16+ &
 
 	gc
 	gzip
@@ -724,7 +724,7 @@ score_cluster_identity(self, ref_expression, ref_samples, clusters_id=[])
 					Reference expression data frame
 					Must have the following columns:
 
-						"GeneName", i.e. gene symbols or identifiers matching
+						"gene_name", i.e. gene symbols or identifiers matching
 						the self.cluster_markers.gene_name
 
 						A column for each cell type with, for each feature, the
