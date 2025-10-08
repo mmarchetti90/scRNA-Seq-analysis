@@ -34,11 +34,15 @@ class integrated_analysis:
     def __init__(self, max_cells_in_memory=100000, desired_feature_type='Gene Expression'):
         
         # Creating color palette for up to 60 clusters
+        """
+        # Use the following if there's a lot of clusters
         cluster_colors = [(r/3, g/3, b/3) for r in range(4) for g in range(4) for b in range(4)][1:-1]
         cluster_colors = [cluster_colors[i1 + i2] for i2 in range(4) for i1 in range(0, len(cluster_colors), 4) if i1 + i2 < len(cluster_colors)] # Spacing colors
         random_indexes = [33, 18, 41, 43, 34, 8, 56, 31, 16, 25, 2, 7, 46, 36, 5, 22, 11, 26, 53, 9, 14, 19, 58, 23, 1, 42, 55, 61, 35, 49, 6, 15, 44, 30, 47, 38, 37, 54, 60, 13, 51, 39, 48, 50, 3, 10, 21, 52, 24, 57, 28, 27, 32, 17, 20, 40, 12, 29, 59, 45]
         cluster_colors = [cluster_colors[ri] for ri in random_indexes]
         self.cluster_colors = seaborn.color_palette(cluster_colors, as_cmap=True)
+        """
+        self.cluster_colors = seaborn.color_palette("tab20")
         
         # Setting maximum number of cells from sparse matrices to load in memory
         self.max_cells_in_memory = max_cells_in_memory
@@ -1462,6 +1466,19 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
+    def load_cluster_identities(self, data_path):
+        
+        try:
+            
+            self.cluster_identities = pd.read_csv(data_path, sep='\t', header=0)
+        
+        except:
+            
+            print("ERROR: couldn't read file")
+            self.cluster_identities = pd.DataFrame()
+    
+    ### ------------------------------------ ###
+    
     def load_cluster_markers(self, data_path):
         
         try:
@@ -2183,6 +2200,74 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
+    def plot_cell_type(self, use_subtype=False, cell_types=[], datasets=[], dot_size=1.5):
+        
+        # Check plot directory
+        self.check_plot_dir()
+        
+        # Load PCA embdeddings
+        _, _, _, _, umap_data = self.load_reduced_dimensions(self.lower_dimensions_dir)
+        
+        # Creating a filter for cells of interest
+        if not len(datasets):
+        
+            dataset_filter = np.array([True for _ in range(self.all_data.shape[0])])
+        
+        else:
+            
+            dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
+        
+        if not use_subtype:
+            
+            cl_to_id = {cl : cl_id for _,(cl,cl_id) in self.cluster_identities[['cluster', 'cell_type']].iterrows()}
+            
+            cell_identities = np.array([cl_to_id[cl] for cl in self.clusters])
+            
+            plot_name = f'{self.plot_dir}/Cell_type_UMAP.png'
+        
+        else:
+            
+            cl_to_id = {cl : cl_id for _,(cl,cl_id) in self.cluster_identities[['cluster', 'cell_sub_type']].iterrows()}
+            
+            cell_identities = np.array([cl_to_id[cl] for cl in self.clusters])
+            
+            plot_name = f'{self.plot_dir}/Cell_subtype_UMAP.png'
+        
+        if not len(cell_types):
+        
+            identity_filter = np.array([True for _ in range(self.all_data.shape[0])])
+            cell_types = np.sort(np.unique(cell_identities)).tolist()
+
+        else:
+        
+            identity_filter = np.isin(cell_identities, cell_types)
+        
+        cell_filter = list(dataset_filter & identity_filter)
+        
+        # Subsetting cluster color palette
+        color_palette = self.cluster_colors[:len(cell_types)]
+
+        # Splitting legend into legend_cols columns
+        legend_cols = int(len(cell_types) / 16) + 1
+        
+        # Adding cluster data, then sorting by smallest value
+        plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
+        plot_data['Cell type'] = cell_identities
+
+        # Subsetting cells
+        plot_data = plot_data.loc[cell_filter,]
+
+        # Plotting
+        plt.figure(figsize=(5, 5))
+        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', palette=color_palette, marker='.', s=dot_size, linewidth=0)
+        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell type', ncol=legend_cols)
+        plt.xlabel('UMAP 1')
+        plt.ylabel('UMAP 2')
+        plt.savefig(plot_name, bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+        plt.close()
+    
+    ### ------------------------------------ ###
+    
     def plot_clusters(self, datasets=[], clusters=[], dot_size=1.5):
         
         # Check plot directory
@@ -2426,6 +2511,86 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
+    def plot_marker_set(self, cell_type_markers, prefix='markers'):
+
+        # Format list of markers, their annotation, and their index
+        min_markers = 1
+        all_markers, markers_annot, all_markers_idx = [], [], []
+        for _,(cell_name,markers) in cell_type_markers.iterrows():
+
+            markers_cleaned = [m for m in markers.split(';') if m in self.all_genes]
+            
+            markers_idx = [self.all_genes.index(mc) for mc in markers_cleaned]
+            
+            if len(markers_cleaned) >= min_markers:
+                
+                all_markers += markers_cleaned
+                markers_annot += [cell_name for _ in range(len(markers_cleaned))]
+                all_markers_idx += markers_idx
+
+        # Format for plotting
+        unique_markers = np.sort(np.unique(markers_annot)).tolist()
+        annot_data = pd.DataFrame({'annotation' : markers_annot,
+                                   'color' : [seaborn.color_palette('tab20')[unique_markers.index(ma)] for ma in markers_annot]},
+                                  index=all_markers)
+        plot_data = pd.DataFrame([],
+                                 index=all_markers)
+                
+        # Add mean expression values
+        for cl in np.sort(np.unique(self.clusters)):
+            
+            cl_cells = (self.clusters == cl)
+            
+            cl_mean = np.mean(self.all_data[cl_cells,][:, all_markers_idx].toarray(), axis=0).tolist()
+            
+            plot_data.loc[:, f'cluster_{cl}'] = cl_mean.copy()
+
+        # Remove genes that are not expressed in any sample
+        annot_data = annot_data.loc[plot_data.sum(axis=1) > 0,]
+        plot_data = plot_data.loc[plot_data.sum(axis=1) > 0,]
+
+        # Clustering
+        cm = seaborn.clustermap(plot_data, z_score=0, center=0, vmin=-3, vmax=3, row_colors=annot_data['color'].values, row_cluster=False, col_cluster=True)
+        plt.close()
+        col_order = cm.dendrogram_col.reordered_ind
+        plot_data = plot_data.iloc[:, col_order]
+
+        # Z score
+        plot_data_zscored = zscore(plot_data, axis=1)
+
+        # Color palette
+        palette = seaborn.diverging_palette(h_neg=260, h_pos=15, s=75, l=50, sep=1, as_cmap=True)
+        # Init plot
+        fig, axes = plt.subplots(1, 3, figsize=(10, (len(all_markers) // 6) + 1), gridspec_kw={'width_ratios': [6, 0.5, 4]})
+        # Heatmap
+        seaborn.heatmap(plot_data_zscored, center=0, vmin=-3, vmax=3, cmap=palette, ax=axes[0], cbar_ax=axes[1], cbar=True)
+        axes[0].set_yticks(np.arange(0.5, len(all_markers), 1), all_markers)
+        axes[0].tick_params(axis='y', which='major', pad=25, length=0, labelsize=6)
+        # Row annotations
+        for i,color in enumerate(annot_data['color'].values):
+            
+            axes[0].add_patch(plt.Rectangle(xy=(-0.065, i), width=0.05, height=1, color=color, lw=0,
+                                            transform=axes[0].get_yaxis_transform(), clip_on=False))
+            axes[0].add_patch(plt.Rectangle(xy=(-0.065, i), width=0.05, height=1, edgecolor='black', facecolor='none', lw=1,
+                                            transform=axes[0].get_yaxis_transform(), clip_on=False))
+
+        # Heatmap border
+        axes[0].axhline(y=0, color='black', linewidth=2)
+        axes[0].axhline(y=plot_data_zscored.shape[0], color='black', linewidth=2)
+        axes[0].axvline(x=0, color='black', linewidth=2)
+        axes[0].axvline(x=plot_data_zscored.shape[1], color='black', linewidth=2)
+        # Patches for the markers annotation
+        cell_type_legend_patches = [mpatches.Patch(color=color, label=annot)
+                                    for _,(annot,color) in annot_data.drop_duplicates(['annotation', 'color']).iterrows()]
+        axes[2].legend(handles=cell_type_legend_patches, title='Marker type', loc='center')
+        axes[2].set_axis_off()
+        # Save
+        plt.tight_layout()
+        plt.savefig(f'{self.plot_dir}/{prefix}.png', dpi=300)
+        plt.close()
+    
+    ### ------------------------------------ ###
+    
     def plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5):
         
         # Check plot directory
@@ -2471,13 +2636,13 @@ class integrated_analysis:
         # Plotting
         if pseudotime:
             
-            plt.figure(figsize=(5.5, 5))
+            plt.figure(figsize=(6, 5))
             plot_data.sort_values(by="Pseudotime", axis = 0, ascending = True, inplace = True)
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', palette='viridis', marker='.', s=dot_size, linewidth=0)
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', palette='viridis', marker='.', s=dot_size, linewidth=0)
             norm = plt.Normalize(0, 100)
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])
-            plt.colorbar(sm)
+            plt.colorbar(sm, ax=ax)
             plt.legend().remove()
             
             for br in self.branches:
@@ -2526,8 +2691,9 @@ import umap
 from matplotlib import pyplot as plt
 from os import listdir, makedirs, mkdir
 from os.path import abspath, isdir, exists
+from matplotlib import patches as mpatches
 from scipy.sparse import csr_matrix, dok_matrix, load_npz, save_npz, vstack
-from scipy.stats import hypergeom, mannwhitneyu
+from scipy.stats import hypergeom, mannwhitneyu, zscore
 from sklearn.decomposition import PCA
 from sklearn.neighbors import kneighbors_graph
 from statsmodels.stats.multitest import fdrcorrection
