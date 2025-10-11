@@ -659,7 +659,7 @@ check_cluster_composition()
 
 /// ---------- ///
 
-cluster_cells(self, n_neighbors=10)
+cluster_cells(self, n_neighbors=10, resolution_parameter=1.0, beta=0.01)
 
 	Cluster cells using the Leiden algorithm on a graph of the k
 	nearest-neighbors.
@@ -669,6 +669,14 @@ cluster_cells(self, n_neighbors=10)
 	n_neighbors
 					Number of neighbors to use for constructing the graph
 					Default = 10
+
+	resolution_parameter
+					Higher resolutions lead to more smaller communities, while lower resolutions lead to fewer larger communities
+					Default = 1.0
+
+	beta
+					Parameter affecting the randomness in the Leiden algorithm
+					Default = 0.01
 
 /// ---------- ///
 
@@ -1038,7 +1046,7 @@ plot_gene_set_score(self, set_score, gene_set_name='', datasets=[], clusters=[],
 
 /// ---------- ///
 
-plot_marker_set(self, cell_type_markers)
+plot_marker_set(self, cell_type_markers, prefix='markers', fig_x_size=10, fig_y_size=6, width_ratios=[6, 0.5, 4])
 
 	Plots a heatmap of a desired set of markers, annotated for the corresponding cell type.
 
@@ -1050,6 +1058,18 @@ plot_marker_set(self, cell_type_markers)
 	prefix
 					Plot prefix.
 					Default = 'markers'
+
+	fig_x_size
+					Figure width
+					Default = 10
+
+	fig_y_size
+					Figure height
+					Default = 6
+
+	width_ratio
+					Width ratios of subplots
+					Default = [6, 0.5, 4]
 
 /// ---------- ///
 

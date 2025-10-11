@@ -1329,7 +1329,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
         
-    def cluster_cells(self, n_neighbors=10):
+    def cluster_cells(self, n_neighbors=10, resolution_parameter=1.0, beta=0.01):
         
         print('\n########################################')
         print('Clustering cells')
@@ -1376,7 +1376,7 @@ class integrated_analysis:
         graph.to_undirected(mode='collapse', combine_edges=None)
         
         # Clustering using Leiden algorithm
-        clusters = graph.community_leiden(objective_function='modularity', weights=None, resolution_parameter=1.0, beta=0.01, initial_membership=None, n_iterations=2, node_weights=None).membership
+        clusters = graph.community_leiden(objective_function='modularity', weights=None, resolution_parameter=resolution_parameter, beta=beta, initial_membership=None, n_iterations=2, node_weights=None).membership
         clusters = np.array(clusters)
         
         self.clusters = clusters
@@ -2511,7 +2511,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_marker_set(self, cell_type_markers, prefix='markers'):
+    def plot_marker_set(self, cell_type_markers, prefix='markers', fig_x_size=10, fig_y_size=6, width_ratios=[6, 0.5, 4]):
 
         # Format list of markers, their annotation, and their index
         min_markers = 1
@@ -2529,9 +2529,10 @@ class integrated_analysis:
                 all_markers_idx += markers_idx
 
         # Format for plotting
+        colors = 4 * seaborn.color_palette('tab20')
         unique_markers = np.sort(np.unique(markers_annot)).tolist()
         annot_data = pd.DataFrame({'annotation' : markers_annot,
-                                   'color' : [seaborn.color_palette('tab20')[unique_markers.index(ma)] for ma in markers_annot]},
+                                   'color' : [colors[unique_markers.index(ma)] for ma in markers_annot]},
                                   index=all_markers)
         plot_data = pd.DataFrame([],
                                  index=all_markers)
@@ -2539,7 +2540,7 @@ class integrated_analysis:
         # Add mean expression values
         for cl in np.sort(np.unique(self.clusters)):
             
-            cl_cells = (self.clusters == cl)
+            cl_cells = np.where(self.clusters == cl)[0]
             
             cl_mean = np.mean(self.all_data[cl_cells,][:, all_markers_idx].toarray(), axis=0).tolist()
             
@@ -2561,11 +2562,12 @@ class integrated_analysis:
         # Color palette
         palette = seaborn.diverging_palette(h_neg=260, h_pos=15, s=75, l=50, sep=1, as_cmap=True)
         # Init plot
-        fig, axes = plt.subplots(1, 3, figsize=(10, (len(all_markers) // 6) + 1), gridspec_kw={'width_ratios': [6, 0.5, 4]})
+        fig, axes = plt.subplots(1, 3, figsize=(fig_x_size, fig_y_size), gridspec_kw={'width_ratios': width_ratios})
         # Heatmap
         seaborn.heatmap(plot_data_zscored, center=0, vmin=-3, vmax=3, cmap=palette, ax=axes[0], cbar_ax=axes[1], cbar=True)
-        axes[0].set_yticks(np.arange(0.5, len(all_markers), 1), all_markers)
+        axes[0].set_yticks(np.arange(0.5, annot_data.shape[0], 1), annot_data.index.values)
         axes[0].tick_params(axis='y', which='major', pad=25, length=0, labelsize=6)
+        axes[0].tick_params(axis='x', which='major', labelsize=6)
         # Row annotations
         for i,color in enumerate(annot_data['color'].values):
             
