@@ -270,7 +270,7 @@ preprocess_samples(min_cell_raw_counts=500, min_detected_genes=500)
 
 /// ---------- ///
 
-proportional_fitting(mtx)
+proportional_fitting(mtx, target_size=-1)
 
 	Static method for proportional fitting of cells in a csr_matrix.
 	Will scale each cell library size to the median library size.
@@ -278,7 +278,12 @@ proportional_fitting(mtx)
 	Attributes:
 
 	mtx
-					csr_sparse matrix.
+					csr_sparse matrix
+
+	target_size
+					Target size for correction. If set to -1, the median of all
+					library sizes will be used
+					Default = -1
 
 /// ---------- ///
 
@@ -445,7 +450,7 @@ find_highly_variable_genes(mtx, x_low_cutoff=0.1, x_high_cutof=8, y_low_cutoff=1
 
 /// ---------- ///
 
-integrate_data(data_path='', use_highly_variable_genes=True, union=False, use_scanorama_embeddings=True, max_pca_components=50)
+integrate_data(data_path='', use_highly_variable_genes=True, union=False, adjust_library_size=True, use_scanorama_embeddings=True, max_pca_components=50)
 
 	Datasets integration using Scanorama.
 
@@ -466,6 +471,11 @@ integrate_data(data_path='', use_highly_variable_genes=True, union=False, use_sc
 					(not recommended)
 					Default = False
 
+	adjust_library_size
+					If True, library sizes will be corrected across datasets
+					prior to running Scanorama
+					Default = True
+
 	use_scanorama_embeddings
 					If True, Scanorama PCA embedding will be used for UMAP
 					(recommended)
@@ -476,7 +486,7 @@ integrate_data(data_path='', use_highly_variable_genes=True, union=False, use_sc
 
 /// ---------- ///
 
-merge_integrated_datasets(data_path)
+merge_integrated_datasets(data_path, adjust_library_size=False)
 
 	Merges datasets after integration.
 	Called by integrate_data.
@@ -487,6 +497,10 @@ merge_integrated_datasets(data_path)
 					Path to folder containing integrated sparse matrices
 					If '', the self.integrated_data_dir will be used
 					Default = ''
+
+	adjust_library_size
+					If True, library sizes will be corrected across datasets
+					Default = False
 
 /// ---------- ///
 

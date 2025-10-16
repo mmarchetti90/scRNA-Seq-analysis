@@ -555,19 +555,26 @@ class integrated_analysis:
     ### ------------------------------------ ###
     
     @staticmethod
-    def proportional_fitting(mtx):
+    def proportional_fitting(mtx, target_size=-1):
         
         # Get total cell counts
         total_counts = np.asarray(mtx.sum(axis=1)).reshape(-1)
         
         # Compute correction factors
-        median_total_counts = np.median(total_counts)
-        correction_factors = median_total_counts / total_counts
+        if target_size == -1:
+        
+            target_size = np.median(total_counts)
+        
+        else:
+            
+            pass
+        
+        correction_factors = target_size / total_counts
         correction_factors = correction_factors.reshape((len(correction_factors), 1))
         
         # Correct matrix
         mtx = csr_matrix(mtx.multiply(correction_factors))
-    
+
         return mtx
     
     ### ------------------------------------ ###
@@ -777,7 +784,7 @@ class integrated_analysis:
     ### DATA INTEGRATION                     ###
     ### ------------------------------------ ###
     
-    def integrate_data(self, data_path='', use_highly_variable_genes=True, union=False, use_scanorama_embeddings=True, max_pca_components=50):
+    def integrate_data(self, data_path='', use_highly_variable_genes=True, union=False, adjust_library_size=True, use_scanorama_embeddings=True, max_pca_components=50):
         
         # Data integration with Scanorama
         
@@ -814,6 +821,12 @@ class integrated_analysis:
         
         # Load matrices for Scanorama
         datasets_labels, datasets, cells_list, genes_list = self.load_all_matrices_in_path(data_path)
+        
+        # Correcting for library size
+        if adjust_library_size:
+        
+            datasets_target_size = np.median(np.concatenate([ds.sum(axis=1).A.ravel() for ds in datasets]))
+            datasets = [self.proportional_fitting(ds, datasets_target_size) for ds in datasets]
         
         # Filter for common HVGs
         if use_highly_variable_genes:
@@ -859,11 +872,11 @@ class integrated_analysis:
         print('########################################\n')
         
         # Merging integrated dataset
-        self.merge_integrated_datasets(self.integrated_data_dir)
+        self.merge_integrated_datasets(self.integrated_data_dir, False)
     
     ### ------------------------------------ ###
     
-    def merge_integrated_datasets(self, data_path=''):
+    def merge_integrated_datasets(self, data_path='', adjust_library_size=False):
         
         print('\n########################################')
         print('Merging integrated data to single dataset')
@@ -898,6 +911,12 @@ class integrated_analysis:
         
         # Load integrated data
         datasets_labels, datasets, cells_list, genes_list = self.load_all_matrices_in_path(data_path)
+        
+        # Correcting for library size
+        if adjust_library_size:
+        
+            datasets_target_size = np.median(np.concatenate([ds.sum(axis=1).A.ravel() for ds in datasets]))
+            datasets = [self.proportional_fitting(ds, datasets_target_size) for ds in datasets]
         
         # Merge datasets
         datasets_metadata, all_cells, all_genes, all_data = self.merge_datasets(datasets_labels, datasets, cells_list, genes_list, desired_genes=[])
