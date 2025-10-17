@@ -196,12 +196,14 @@ class integrated_analysis:
         
         # Save barcodes
         out_text = ('\n'.join(barcodes)).encode()
+        out_text += b'\n'
         with gzip.open(f'{main_path}/{out_dir}/{label}_barcodes.tsv.gz', 'wb') as output:
             
             output.write(out_text)
         
         # Save features
         out_text = ('\n'.join(features)).encode()
+        out_text += b'\n'
         with gzip.open(f'{main_path}/{out_dir}/{label}_features.tsv.gz', 'wb') as output:
             
             output.write(out_text)
@@ -223,8 +225,7 @@ class integrated_analysis:
         
         # Read matrix to find how many lines to skip when loading as pandas as well as the optimal
         # way to break the matrix into chunks of max_cells_in_memory cells
-        # N.B. Only checks the first 100 lines for headers (if you have more than than, well, what
-        # the hell are you doing anyway!?)
+        # N.B. Only checks the first N_lines_to_check lines for headers
         
         # Open matrix file
         if path.endswith('.gz'):
@@ -236,6 +237,7 @@ class integrated_analysis:
             matrix_file = open(path, 'r')
         
         # Parse matrix file
+        N_lines_to_check = 10
         header_lines, breaks = 0, []
         previous_line_cell_index, cell_count = 0, 0
         for (index, line) in enumerate(matrix_file):
@@ -254,7 +256,7 @@ class integrated_analysis:
                 r, c, n = line.split(separator)
                 r, c, n = int(r), int(c), float(n) # Columns are 1-N so no need to c + 1 to account for column with gene names
                 
-                if (r == genes_num or c == cells_num) and index < 100:
+                if (r == genes_num or c == cells_num) and index < N_lines_to_check:
                 
                     header_lines += 1
                     
@@ -291,24 +293,32 @@ class integrated_analysis:
         
         # Save csr_matrix as 10X Genomics mtx file (100 cells at a time to save memory)
         with gzip.open(out_name, 'wb') as mtx_out:
+
+            # Write header
+            out_text = '\n'.join(["%%MatrixMarket matrix coordinate numeric general",
+                                  f'{csr.shape[1]}\t{csr.shape[0]}\t{csr.count_nonzero()}'])
+            out_text = out_text.encode()
+            out_text += b'\n'
+            mtx_out.write(out_text)
             
             for i in range(csr.shape[0] // max_cells + 1):
-                
+        
                 # Creating indexes for mtx rows (genes) and columns (cells)
                 # Note that in the csr, rows and columns are transposed
                 cols, rows = np.where(csr[i * max_cells : (i + 1) * max_cells].toarray() != 0)
-                cols += i * max_cells + 1
+                cols += i * max_cells
                 
                 # Get values
-                counts = csr[i * max_cells : (i + 1) * max_cells].toarray().flatten()
+                counts = csr[cols, rows].A.flatten()
+                
+                # Adjust columns and rows indices (mtx files are 1-based)
+                rows += 1
+                cols += 1
                 
                 # Format text
                 out_text = '\n'.join([f'{r}\t{c}\t{n}' for r, c, n in zip(rows, cols, counts)])
                 out_text = out_text.encode()
-                
-                if i > 0 and i < csr.shape[0] // max_cells:
-                    
-                    out_text += b'\n'
+                out_text += b'\n'
                 
                 # Write text
                 mtx_out.write(out_text)
@@ -666,6 +676,7 @@ class integrated_analysis:
         
         # Save HVGs to file
         out_text = ('\n'.join(self.hvgs)).encode()
+        out_text += b'\n'
         with gzip.open(f'{hvgs_dir}/common_higly_variable_genes.tsv.gz', 'wb') as output:
             
             output.write(out_text)
@@ -709,6 +720,7 @@ class integrated_analysis:
         
         # Save HVGs to file
         out_text = ('\n'.join(self.hvgs)).encode()
+        out_text += b'\n'
         with gzip.open(f'{hvgs_dir}/higly_variable_genes_whole_dataset.tsv.gz', 'wb') as output:
             
             output.write(out_text)
@@ -935,6 +947,7 @@ class integrated_analysis:
         # Save barcodes
         print('Saving merged barcodes to file')
         out_text = ('\n'.join(all_cells)).encode()
+        out_text += b'\n'
         with gzip.open(f'{merged_data_dir}/all_barcodes.tsv.gz', 'wb') as output:
             
             output.write(out_text)
@@ -942,6 +955,7 @@ class integrated_analysis:
         # Save features
         print('Saving merged gene names to file')
         out_text = ('\n'.join(all_genes)).encode()
+        out_text += b'\n'
         with gzip.open(f'{merged_data_dir}/all_features.tsv.gz', 'wb') as output:
             
             output.write(out_text)
