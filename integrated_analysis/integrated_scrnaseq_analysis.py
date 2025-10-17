@@ -2188,7 +2188,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_cell_cycle(self, datasets=[], clusters=[], dot_size=1.5):
+    def plot_cell_cycle(self, datasets=[], clusters=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2225,7 +2225,7 @@ class integrated_analysis:
         # Plotting
         plt.figure(figsize=(5, 5))
         seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='CellCyclePhase', hue_order=['G1PM', 'G1', 'S', 'G2M'], palette='Set1', marker='.', s=dot_size, linewidth=0)
-        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell Cycle Phase')
+        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell Cycle Phase', markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.savefig(f'{self.plot_dir}/Cell_Cycle_Phase_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
@@ -2233,7 +2233,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_cell_type(self, use_subtype=False, cell_types=[], datasets=[], dot_size=1.5):
+    def plot_cell_type(self, use_subtype=False, cell_types=[], datasets=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2293,7 +2293,7 @@ class integrated_analysis:
         # Plotting
         plt.figure(figsize=(5, 5))
         seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', palette=color_palette, marker='.', s=dot_size, linewidth=0)
-        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell type', ncol=legend_cols)
+        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell type', ncol=legend_cols, markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.savefig(plot_name, bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
@@ -2301,7 +2301,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_clusters(self, datasets=[], clusters=[], dot_size=1.5):
+    def plot_clusters(self, datasets=[], clusters=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2348,7 +2348,7 @@ class integrated_analysis:
         # Plotting
         plt.figure(figsize=(5, 5))
         seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
-        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols)
+        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols, markerscale=markerscale)
         for c_num,cl in enumerate(centers):
             
             x, y = cl
@@ -2361,7 +2361,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_datasets(self, datasets=[], clusters=[], dot_size=1.5):
+    def plot_datasets(self, datasets=[], clusters=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2407,7 +2407,7 @@ class integrated_analysis:
         # Plotting
         plt.figure(figsize=(5, 5))
         seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Datasets', palette=color_palette, marker='.', s=dot_size, linewidth=0)
-        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Datasets', ncol=legend_cols)
+        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Datasets', ncol=legend_cols, markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.savefig(f'{self.plot_dir}/Datasets_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
@@ -2415,7 +2415,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_gene_expression(self, target_gene, datasets=[], clusters=[], dot_size=1.5):
+    def plot_gene_expression(self, target_gene, datasets=[], clusters=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2460,26 +2460,35 @@ class integrated_analysis:
             # Adding expression data
             plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
             plot_data['Expression'] = expression
+            plot_data.sort_values(by="Expression", axis = 0, ascending = True, inplace = True)
             
             # Subsetting cells
             plot_data = plot_data.loc[cell_filter,]
             
             # Plotting
-            plt.figure(figsize=(5, 5))
+            plt.figure(figsize=(6, 5))
             
             if plot_data.Expression.min() != plot_data.Expression.max():
                 
-                seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', palette='viridis', marker='.', s=dot_size, linewidth=0)
+                ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', hue_norm=(0, plot_data.Expression.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+                norm = plt.Normalize(0, plot_data.Expression.max())
+                sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+                sm.set_array([])
+                plt.colorbar(sm, ax=ax)
+                plt.legend().remove()
+                plt.xlabel('UMAP 1')
+                plt.ylabel('UMAP 2')
+                plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_UMAP.png', bbox_inches='tight', dpi=300)
+                plt.close()
             
             else:
                 
-                seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', hue_norm=(0, 100), palette='viridis', marker='.', s=dot_size, linewidth=0)
-            
-            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=f'{target_gene} Expression')
-            plt.xlabel('UMAP 1')
-            plt.ylabel('UMAP 2')
-            plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
-            plt.close()
+                seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', palette='viridis', marker='.', s=dot_size, linewidth=0)
+                legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=f'{target_gene} Expression', markerscale=markerscale)
+                plt.xlabel('UMAP 1')
+                plt.ylabel('UMAP 2')
+                plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+                plt.close()
         
         else:
             
@@ -2487,7 +2496,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_gene_set_score(self, set_score, gene_set_name='', datasets=[], clusters=[], dot_size=1.5):
+    def plot_gene_set_score(self, set_score, gene_set_name='', datasets=[], clusters=[], dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2522,25 +2531,34 @@ class integrated_analysis:
         # Adding expression data, then sorting by smallest value
         plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
         plot_data['Score'] = list(set_score)
+        plot_data.sort_values(by="Score", axis = 0, ascending = True, inplace = True)
         
         # Subsetting cells
         plot_data = plot_data.loc[cell_filter,]
         
         # Plotting
-        plt.figure(figsize=(5, 5))
+        plt.figure(figsize=(6, 5))
         if plot_data.Score.min() != plot_data.Score.max():
             
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', palette='viridis', marker='.', s=dot_size, linewidth=0)
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=(0, plot_data.Score.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            norm = plt.Normalize(0, plot_data.Score.max())
+            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm.set_array([])
+            plt.colorbar(sm, ax=ax)
+            plt.legend().remove()
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.savefig(f'{self.plot_dir}/{gene_set_name}_Expression_UMAP.png', bbox_inches='tight', dpi=300)
+            plt.close()
         
         else:
             
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=(0, 100), palette='viridis', marker='.', s=dot_size, linewidth=0)
-        
-        legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Gene Set Expression')
-        plt.xlabel('UMAP 1')
-        plt.ylabel('UMAP 2')
-        plt.savefig(f'{self.plot_dir}/{gene_set_name}_Expression_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
-        plt.close()
+            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', palette='viridis', marker='.', s=dot_size, linewidth=0)
+            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Gene Set Expression', markerscale=markerscale)
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.savefig(f'{self.plot_dir}/{gene_set_name}_Expression_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+            plt.close()
     
     ### ------------------------------------ ###
     
@@ -2626,7 +2644,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5):
+    def plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2673,8 +2691,8 @@ class integrated_analysis:
             
             plt.figure(figsize=(6, 5))
             plot_data.sort_values(by="Pseudotime", axis = 0, ascending = True, inplace = True)
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', palette='viridis', marker='.', s=dot_size, linewidth=0)
-            norm = plt.Normalize(0, 100)
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', hue_norm=(0, plot_data.Pseudotime.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            norm = plt.Normalize(0, plot_data.Pseudotime.max())
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])
             plt.colorbar(sm, ax=ax)
@@ -2695,7 +2713,7 @@ class integrated_analysis:
             
             plt.figure(figsize=(5, 5))
             seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
-            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols)
+            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols, markerscale=markerscale)
 
             for br in self.branches:
             
