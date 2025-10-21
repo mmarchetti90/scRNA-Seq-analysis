@@ -2292,7 +2292,7 @@ class integrated_analysis:
 
         # Plotting
         plt.figure(figsize=(5, 5))
-        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', palette=color_palette, marker='.', s=dot_size, linewidth=0)
+        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', hue_order=cell_types, palette=color_palette, marker='.', s=dot_size, linewidth=0)
         legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell type', ncol=legend_cols, markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
@@ -2432,7 +2432,7 @@ class integrated_analysis:
             
             dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
         
-        if not len(clusters) or not hasattr(self, 'clusters'):
+        if not len(clusters):
         
             cluster_filter = np.array([True for _ in range(self.all_data.shape[0])])
 
@@ -2460,10 +2460,12 @@ class integrated_analysis:
             # Adding expression data
             plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
             plot_data['Expression'] = expression
-            plot_data.sort_values(by="Expression", axis = 0, ascending = True, inplace = True)
             
             # Subsetting cells
             plot_data = plot_data.loc[cell_filter,]
+            
+            # Sort values
+            plot_data.sort_values(by="Expression", axis = 0, ascending = True, inplace = True)
             
             # Plotting
             plt.figure(figsize=(6, 5))
@@ -2531,10 +2533,12 @@ class integrated_analysis:
         # Adding expression data, then sorting by smallest value
         plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
         plot_data['Score'] = list(set_score)
-        plot_data.sort_values(by="Score", axis = 0, ascending = True, inplace = True)
         
         # Subsetting cells
         plot_data = plot_data.loc[cell_filter,]
+        
+        # Sort values
+        plot_data.sort_values(by="Score", axis = 0, ascending = True, inplace = True)
         
         # Plotting
         plt.figure(figsize=(6, 5))
@@ -2644,7 +2648,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5, markerscale=2):
+    def plot_trajectories(self, datasets=[], branches=[], pseudotime=False, dot_size=1.5, markerscale=2):
         
         # Check plot directory
         self.check_plot_dir()
@@ -2662,7 +2666,12 @@ class integrated_analysis:
             dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
         
         # Get list of clusters used in the trajectory
-        clusters = list({vertex for br in self.branches for vertex in br})
+        if not len(branches):
+        
+            branches = self.branches
+        
+        # Get list of clusters used in the trajectory
+        clusters = list({vertex for br in branches for vertex in br})
         clusters.sort()
         
         cell_filter = list(dataset_filter & np.isin(self.clusters, clusters))
@@ -2689,8 +2698,11 @@ class integrated_analysis:
         # Plotting
         if pseudotime:
             
-            plt.figure(figsize=(6, 5))
+            # Sort data
             plot_data.sort_values(by="Pseudotime", axis = 0, ascending = True, inplace = True)
+            
+            # Plot
+            plt.figure(figsize=(6, 5))
             ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', hue_norm=(0, plot_data.Pseudotime.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
             norm = plt.Normalize(0, plot_data.Pseudotime.max())
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
@@ -2698,7 +2710,7 @@ class integrated_analysis:
             plt.colorbar(sm, ax=ax)
             plt.legend().remove()
             
-            for br in self.branches:
+            for br in branches:
                 
                 cluster_indexes = [clusters.index(cl) for cl in br]
                 x, y = centers[cluster_indexes, 0], centers[cluster_indexes, 1]

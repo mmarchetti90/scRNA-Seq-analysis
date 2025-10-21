@@ -1126,8 +1126,8 @@ plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5
 					List of labels of datasets to plot
 					Default = []
 
-	clusters
-					List of clusters to plot
+	branches
+					List of branches to plot
 					Default = []
 
 	pseudotime
