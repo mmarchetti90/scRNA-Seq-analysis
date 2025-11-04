@@ -71,7 +71,7 @@ class integrated_analysis:
         for (label, path) in matrices_list.items():
             
             # Load matrix as sparse file of cells-by-genes
-            barcodes, features, sparse_matrix = self.load_sparse_matrix(path)
+            barcodes, features, sparse_matrix = self.load_sparse_matrix(path, save_npz_if_missing=False)
             
             # Store data
             datasets.append(sparse_matrix)
@@ -99,7 +99,7 @@ class integrated_analysis:
     
     ### ------------------------------------ ###
     
-    def load_sparse_matrix(self, main_dir):
+    def load_sparse_matrix(self, main_dir, save_npz_if_missing=True):
         
         try:
             
@@ -125,8 +125,8 @@ class integrated_analysis:
                 # Filter features based on type
                 if len(features_type):
                 
-                    features_filter = (np.array(features_type) == self.desired_feature_type)
-                        
+                    features_filter = np.where(np.array(features_type) == self.desired_feature_type)[0]
+                    
                     features = np.array(features)[features_filter].tolist()
                 
                     sparse_matrix = sparse_matrix[:, features_filter]
@@ -168,7 +168,9 @@ class integrated_analysis:
                 sparse_matrix = csr_matrix(sparse_matrix)
                 
                 # Save as npz file
-                save_npz(f'{main_dir}/{matrix_path}.npz', sparse_matrix, compressed=True)
+                if save_npz_if_missing:
+                
+                    save_npz(f'{main_dir}/{matrix_path}.npz', sparse_matrix, compressed=True)
             
             return barcodes, features, sparse_matrix
             
@@ -342,6 +344,57 @@ class integrated_analysis:
     ### ------------------------------------ ###
     
     @staticmethod
+    def h5_to_csr(h5_path, desired_feature_type=''):
+
+        # Reading HDF5 data
+        h5_data = h5py.File(h5_path, 'r')
+        
+        # Unique cell identifiers
+        barcodes = np.array(h5_data['matrix']['barcodes']).astype(str)
+        cells_num = len(barcodes)
+        
+        # Genes
+        #gene_ids = np.array(h5_data['matrix']['features']['id']).astype(str)
+        gene_names = np.array(h5_data['matrix']['features']['name']).astype(str)
+        genes_num = len(gene_names)
+        try:
+            
+            features_type = np.array(h5_data['matrix']['features']['feature_type']).astype(str)
+        
+        except:
+            
+            features_type = []
+        
+        # Init sparse matrix
+        sparse_matrix = dok_matrix((cells_num, genes_num))
+        
+        # Parse sparse
+        for N,(start,stop) in enumerate(zip(h5_data['matrix']['indptr'], h5_data['matrix']['indptr'][1:])):
+
+            # Extracting cell data
+            counts = h5_data['matrix']['data'][start : stop]
+            indexes = h5_data['matrix']['indices'][start : stop]
+            
+            # Update matrix
+            sparse_matrix[N, indexes] = counts
+        
+        # Filter features based on type
+        if len(features_type) and desired_feature_type in ['Gene Expression', 'Peak']:
+            
+            features_filter = np.where(np.array(features_type) == desired_feature_type)[0]
+            
+            features = np.array(gene_names)[features_filter].tolist()
+        
+            sparse_matrix = sparse_matrix[:, features_filter]
+
+        # Convert to csr_matrix
+        sparse_matrix = csr_matrix(sparse_matrix)
+        
+        return barcodes, features, sparse_matrix
+    
+    ### ------------------------------------ ###
+    
+    @staticmethod
     def merge_datasets(datasets_labels, datasets, cells_list, genes_list, desired_genes=[]):
         
         # Create a metadata file to store dataset labels and number of cells
@@ -503,9 +556,13 @@ class integrated_analysis:
             # Load data
             if isdir(path): # Data is a sparse matrix
                 
-                barcodes, features, matrix = self.load_sparse_matrix(path)
+                barcodes, features, matrix = self.load_sparse_matrix(path, save_npz_if_missing=False)
             
-            else:
+            elif path.endswith('.h5'): # Data in h5 format
+                
+                barcodes, features, matrix = self.h5_to_csr(path, self.desired_feature_type)
+            
+            else: # Data is a full matrix
                 
                 data = pd.read_csv(path, sep='\t', skip_blank_lines=True)
                 print(f'Converting {path} to sparse matrix')
@@ -978,7 +1035,7 @@ class integrated_analysis:
         try:
             
             self.datasets_metadata = pd.read_csv(f'{data_path}/datasets_metadata.tsv.gz', sep='\t', header=0)
-            self.all_cells, self.all_genes, self.all_data = self.load_sparse_matrix(data_path)
+            self.all_cells, self.all_genes, self.all_data = self.load_sparse_matrix(data_path, save_npz_if_missing=False)
             self.merged_data_dir = data_path
             
         except:
@@ -2530,7 +2587,7 @@ class integrated_analysis:
         
         cell_filter = list(dataset_filter & cluster_filter)
         
-        # Adding expression data, then sorting by smallest value
+        # Adding expression data
         plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
         plot_data['Score'] = list(set_score)
         
@@ -2739,11 +2796,90 @@ class integrated_analysis:
             plt.savefig(f'{self.plot_dir}/Trajectories_UMAP_NoPseudotime.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
             
         plt.close()
+        
+    ### ------------------------------------ ###
+        
+    def plot_variable(self, variable_values, variable_name='Custom variable', categorical=False, sort_values=False, datasets=[], clusters=[], dot_size=1.5, markerscale=2):
+        
+        # Check plot directory
+        self.check_plot_dir()
+
+        # Load PCA embdeddings
+        _, _, _, _, umap_data = self.load_reduced_dimensions(self.lower_dimensions_dir)
+        
+        # Creating a filter for cells of interest
+        if not len(datasets):
+        
+            dataset_filter = np.array([True for _ in range(self.all_data.shape[0])])
+        
+        else:
+            
+            dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
+        
+        if not len(clusters) or not hasattr(self, 'clusters'):
+        
+            cluster_filter = np.array([True for _ in range(self.all_data.shape[0])])
+
+        else:
+        
+            cluster_filter = np.isin(self.clusters, clusters)
+        
+        cell_filter = list(dataset_filter & cluster_filter)
+        
+        # Adding variable data
+        plot_data = pd.DataFrame(umap_data, columns=['UMAP_1', 'UMAP_2'])
+        plot_data[variable_name] = list(variable_values)
+        
+        # Subsetting cells
+        plot_data = plot_data.loc[cell_filter,]
+        
+        # Sort values
+        if sort_values:
+
+            plot_data.sort_values(by=variable_name, axis=0, ascending=True, inplace=True)
+        
+        # Plotting
+        plot_name = f'{self.plot_dir}/{variable_name.lower().replace(" ", "_")}_UMAP.png'
+        plt.figure(figsize=(6, 5))
+        if categorical:
+            
+            # Subsetting cluster color palette
+            color_palette = self.cluster_colors[:len(np.unique(variable_values))]
+            
+            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette=color_palette, marker='.', s=dot_size, linewidth=0)
+            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=variable_name, markerscale=markerscale)
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.savefig(plot_name, bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+            plt.close()
+        
+        elif plot_data[variable_name].min() == plot_data[variable_name].max():
+            
+            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette='viridis', marker='.', s=dot_size, linewidth=0)
+            legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=variable_name, markerscale=markerscale)
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.savefig(plot_name, bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+            plt.close()
+        
+        else:
+            
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, hue_norm=(0, plot_data[variable_name].max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            norm = plt.Normalize(0, plot_data[variable_name].max())
+            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            sm.set_array([])
+            plt.colorbar(sm, ax=ax)
+            plt.legend().remove()
+            plt.xlabel('UMAP 1')
+            plt.ylabel('UMAP 2')
+            plt.savefig(plot_name, bbox_inches='tight', dpi=300)
+            plt.close()
     
 ### ------------------MAIN------------------ ###
 
 import gc
 import gzip
+import h5py
 import igraph
 import numpy as np
 import pandas as pd

@@ -77,7 +77,7 @@ load_all_matrices_in_path(data_path)
 
 /// ---------- ///
 
-load_sparse_matrix(main_dir)
+load_sparse_matrix(main_dir, save_npz_if_missing=True)
 
 	Loads a sparse matrix.
 	If data is from a multiome dataset, then the features are filtered for the
@@ -86,8 +86,11 @@ load_sparse_matrix(main_dir)
 	Attributes:
 
 	main_dir
-
 					Path to directory containing the sparse matrix files
+
+	save_npz_if_missing
+					If True, a npz file will be saved if originally missing
+					Default = True
 
 /// ---------- ///
 
@@ -167,6 +170,21 @@ full_to_sparse(full)
 
 	full
 					Full matrix to convert
+
+/// ---------- ///
+
+h5_to_csr(h5_path, desired_feature_type='')
+
+	Static method to read a h5 file to generate a Scipy csr_matrix.
+
+	Attributes:
+
+	h5_path
+					Path to h5 file
+
+	desired_feature_type
+					The type of data to extract from MEX files in case of multiomics data (i.e. Gene Expression + ATAC)
+					Acceptable values are: 'Gene Expression' and 'Peaks'
 
 /// ---------- ///
 
@@ -1133,6 +1151,46 @@ plot_trajectories(self, datasets=[], clusters=[], pseudotime=False, dot_size=1.5
 	pseudotime
 					If True, will use pseudotime for coloring individual cells
 					Default = False
+
+	dot_size
+					Size of the scatterplor dots
+					Default = 1.5
+
+	markerscale
+					Legend dots size scaling
+					Default = 2
+
+/// ---------- ///
+
+def plot_variable(self, variable_values, variable_name='Custom variable', categorical=False, sort_values=False, datasets=[], clusters=[], dot_size=1.5, markerscale=2)
+
+	Plots a custom categorical or continuous variable.
+
+	Attributes:
+
+	variable_values
+					Custom values to plot for each cell
+
+	variable_name
+					Name of the custom variable
+					Default = 'Custom variable'
+
+	categorical
+					Set to true if the variable is categorical (e.g. custom clusters)
+					Set to false if the variable is continuous (e.g. custom expression values)
+					Default = False
+
+	sort_values
+					Wether to sort the variable values before plotting
+					Default = False
+
+	datasets
+					List of labels of datasets to plot
+					Default = []
+
+	clusters
+					List of clusters to plot
+					Default = []
 
 	dot_size
 					Size of the scatterplor dots
