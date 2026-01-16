@@ -21,6 +21,19 @@
 	Python module for the clustering of genes in PCA space using Leiden algorithm
 	(i.e. same procedure used to cluster cells in 10X_analysis and integrated_analysis modules)
 
+### atac_preprocessing
+
+	Nextflow workflow and Python script for the preprocessing of 10X scATACSeq experiments processed with CellRanger
+
+### rare_cell_type_search
+
+	Python module for the annotation of rare cell-types using multiple metrics
+
+### cell_type_annotation
+
+	Python module for annotating cell types using the sc-type algorithm
+	(see https://www.nature.com/articles/s41467-022-28803-w)
+
 /// --------------------------------------- ///
 
 ### NOTES
