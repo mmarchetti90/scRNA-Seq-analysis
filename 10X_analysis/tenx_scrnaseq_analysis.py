@@ -1129,7 +1129,7 @@ class tenx_scranseq:
             gene_pool = list(self.scaled_features.GeneID)
         
         # Mean of each gene in the gene_pool across all cells
-        gene_means = self.scaled_features.loc[(self.scaled_features.GeneID.isin(gene_pool)) | (self.scaled_features.GeneSymbol.isin(gene_pool))].iloc[:, 2:].mean(axis=1)
+        gene_means = self.normalized_counts.loc[(self.normalized_counts.GeneID.isin(gene_pool)) | (self.normalized_counts.GeneSymbol.isin(gene_pool))].iloc[:, 2:].mean(axis=1)
         gene_means.index = gene_pool
         
         # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression

@@ -1152,7 +1152,7 @@ class integrated_analysis:
         # Save transformed data
         # N.B Scaled data is saved as a cell-to-gene full matrix, so it will be large
         print('Saving embedded data')
-        scaled_out = gzip.open(f'{lower_dimensions_dir}/scaled_data.tsv.gz', 'wb')
+        #scaled_out = gzip.open(f'{lower_dimensions_dir}/scaled_data.tsv.gz', 'wb')
         pca_out = gzip.open(f'{lower_dimensions_dir}/pca_data.tsv.gz', 'wb')
         umap_out = gzip.open(f'{lower_dimensions_dir}/umap_data.tsv.gz', 'wb')
         
@@ -1162,7 +1162,7 @@ class integrated_analysis:
             all_data_subset = self.scale_features(all_data[i * self.max_cells_in_memory : (i + 1) * self.max_cells_in_memory,], gene_mean, gene_std)
             out_text = '\n'.join(['\t'.join(line.astype(str)) for line in all_data_subset])
             out_text = out_text.encode() + (b'\n' if i < all_data.shape[0] // self.max_cells_in_memory else b'')
-            scaled_out.write(out_text)
+            #scaled_out.write(out_text)
             
             # PCA transform
             all_data_subset = pca_model.transform(all_data_subset)
@@ -1177,7 +1177,7 @@ class integrated_analysis:
             umap_out.write(out_text)
         
         # Close files
-        scaled_out.close()
+        #scaled_out.close()
         pca_out.close()
         umap_out.close()
         
@@ -2155,18 +2155,9 @@ class integrated_analysis:
         if not len(gene_pool):
             
             gene_pool = self.all_genes
-        
-        # Mean of each scaled gene in the gene_pool across all cells
-        # Slow implementation, but manageable when theres a lot of cells
-        if self.all_data.shape[0] <= self.max_cells_in_memory:
-            
-            gene_means = self.scale_features(self.all_data).mean(axis=0)
-        
-        else:
-            
-            # N.B. Could have used the .mean() method, but for some reason it kept returning the wrong results (so did the .sum() method)
-            #gene_means = np.array([self.scale_features(self.all_data[:, self.all_genes.index(g)]).mean(axis=0)[0] for g in gene_pool])
-            gene_means = np.ravel(np.array([sum(self.scale_features(self.all_data[:, self.all_genes.index(g)])) / self.all_data.shape[0] for g in gene_pool]))
+
+        # Compute average gene expression levels
+        gene_means = np.array(self.all_data.mean(axis=0)).ravel()
         
         # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
         bin_size = len(gene_means) // bins
@@ -2189,25 +2180,27 @@ class integrated_analysis:
             np.random.shuffle(random_pool)
             ctrl_indexes.extend(random_pool[:ctrl_genes_num])
         ctrl_indexes = list(set(ctrl_indexes)) # Removing duplicates
-        
-        # Computing the mean of gene_set genes for each cell
+
+        # Computing the mean of scaled expression values of gene_set genes for each cell
         set_indexes = [self.all_genes.index(g) for g in gene_set if g in self.all_genes]
-        if self.all_data.shape[0] <= self.max_cells_in_memory:
-            
-            set_means = self.scale_features(self.all_data[:, set_indexes]).mean(axis=1)
+        set_means = self.scale_features(self.all_data[:, set_indexes]).mean(axis=1)
+        #if self.all_data.shape[0] <= self.max_cells_in_memory:
+        #    
+        #    set_means = self.scale_features(self.all_data[:, set_indexes]).mean(axis=1)
+        #
+        #else:
+        #
+        #    set_means = np.array([self.scale_features(self.all_data[:, g]).reshape(-1) for g in set_indexes]).T.mean(axis=1)
 
-        else:
-
-            set_means = np.array([self.scale_features(self.all_data[:, g]).reshape(-1) for g in set_indexes]).T.mean(axis=1)
-
-        # Computing the mean of ctrl_set genes for each cell
-        if self.all_data.shape[0] <= self.max_cells_in_memory:
-            
-            ctrl_means = self.scale_features(self.all_data[:, ctrl_indexes]).mean(axis=1)
-
-        else:
-
-            ctrl_means = np.array([self.scale_features(self.all_data[:, g]).reshape(-1) for g in ctrl_indexes]).T.mean(axis=1)
+        # Computing the mean of scaled expression values of  ctrl_set genes for each cell
+        ctrl_means = self.scale_features(self.all_data[:, ctrl_indexes]).mean(axis=1)
+        #if self.all_data.shape[0] <= self.max_cells_in_memory:
+        #    
+        #    ctrl_means = self.scale_features(self.all_data[:, ctrl_indexes]).mean(axis=1)
+        #
+        #else:
+        #
+        #    ctrl_means = np.array([self.scale_features(self.all_data[:, g]).reshape(-1) for g in ctrl_indexes]).T.mean(axis=1)
         
         set_score = set_means - ctrl_means
         
@@ -2431,12 +2424,10 @@ class integrated_analysis:
         
             dataset_filter = np.array([True for _ in range(self.all_data.shape[0])])
             datasets = self.datasets_metadata.datasets_labels.to_list()
-            print(1)
         
         else:
             
             dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
-            print(2)
         
         if not len(clusters) or not hasattr(self, 'clusters'):
         
@@ -2601,9 +2592,16 @@ class integrated_analysis:
         plt.figure(figsize=(6, 5))
         if plot_data.Score.min() != plot_data.Score.max():
             
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=(0, plot_data.Score.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
-            norm = plt.Normalize(0, plot_data.Score.max())
-            sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
+            # Set colormap range
+            vmin = round(plot_data.Score.min()) if plot_data.Score.min() < 0 else -0.25
+            vmax = round(plot_data.Score.max()) if plot_data.Score.max() > 0 else 0.25
+            abs_smallest = min(abs(vmin), vmax)
+            vmin, vmax = -abs_smallest, abs_smallest
+            
+            # Plot
+            norm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=norm, palette='RdBu_r', marker='.', s=dot_size, linewidth=0)
+            sm = plt.cm.ScalarMappable(cmap="RdBu_r", norm=norm)
             sm.set_array([])
             plt.colorbar(sm, ax=ax)
             plt.legend().remove()
@@ -2835,7 +2833,7 @@ class integrated_analysis:
         
         # Sort values
         if sort_values:
-
+            
             plot_data.sort_values(by=variable_name, axis=0, ascending=True, inplace=True)
         
         # Plotting
@@ -2864,8 +2862,8 @@ class integrated_analysis:
         
         else:
             
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, hue_norm=(0, plot_data[variable_name].max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
-            norm = plt.Normalize(0, plot_data[variable_name].max())
+            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, hue_norm=(plot_data[variable_name].min(), plot_data[variable_name].max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            norm = plt.Normalize(plot_data[variable_name].min(), plot_data[variable_name].max())
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])
             plt.colorbar(sm, ax=ax)
@@ -2893,6 +2891,7 @@ from matplotlib import pyplot as plt
 from os import listdir, makedirs, mkdir
 from os.path import abspath, isdir, exists
 from matplotlib import patches as mpatches
+from matplotlib.colors import TwoSlopeNorm
 from scipy.sparse import csr_matrix, dok_matrix, load_npz, save_npz, vstack
 from scipy.stats import hypergeom, mannwhitneyu, zscore
 from sklearn.decomposition import PCA
