@@ -2161,22 +2161,15 @@ class integrated_analysis:
         
         # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
         bin_size = len(gene_means) // bins
-        expression_order = np.argsort(gene_means)
+        expression_order = np.argsort(np.argsort(gene_means))
         
-        set_order_indexes = []
-        for gene in gene_set:
-            
-            index = expression_order[self.all_genes.index(gene)]
-            
-            set_order_indexes.append(index)
+        set_ranks = expression_order[np.isin(self.all_genes, gene_set)].tolist()
         
         ctrl_indexes = []
-        for index in set_order_indexes:
-            
-            random_pool = np.where((expression_order >= (index - bin_size // 2)) &
-                                   (expression_order <= (index + bin_size // 2)) &
-                                   ~(np.isin(expression_order, set_order_indexes)))[0].tolist()
-            
+        for rank in set_ranks:
+            random_pool = np.where((expression_order >= (rank - bin_size // 2)) &
+                                   (expression_order <= (rank + bin_size // 2)) &
+                                   ~(np.isin(expression_order, set_ranks)))[0].tolist()
             np.random.shuffle(random_pool)
             ctrl_indexes.extend(random_pool[:ctrl_genes_num])
         ctrl_indexes = list(set(ctrl_indexes)) # Removing duplicates
