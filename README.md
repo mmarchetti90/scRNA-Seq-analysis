@@ -34,6 +34,11 @@
 	Python module for annotating cell types using the sc-type algorithm
 	(see https://www.nature.com/articles/s41467-022-28803-w)
 
+## clustering_eval
+
+	Test a range of n_neighbors and resolution parameters for Leiden clustering
+	Score using Silhouette, Adjusted Rand Index, Adjusted Mutual Information
+
 /// --------------------------------------- ///
 
 ### NOTES

@@ -215,7 +215,7 @@ class find_cell_type:
             
             # Extract cluster gene expression and rank them
             cl_counts = np.median(self.expression_matrix[self.clusters == cl, ].toarray(), axis=0)
-            gene_rank = np.argsort(cl_counts)[::-1]
+            gene_rank = np.argsort(cl_counts)[::-1] ### FIX/CHECK
             
             # Randomize genes with same expression
             start = 0
