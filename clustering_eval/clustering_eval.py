@@ -46,7 +46,7 @@ class LeidenClusteringEvaluator:
                 clustering_results = []
                 for _ in range(n_iterations):
                     indexes_sub = np.random.choice(pca_data.index.values, subset_size, False)
-                    pca_data_sub = pca_data.loc[indexes_sub,].copy()
+                    pca_data_sub = pca_data.loc[indexes_sub].copy()
                     new_clusters = self.cluster_cells(pca_data_sub, n_neighbors, resolution)
                     new_clusters = pd.Series(new_clusters, index=indexes_sub)
                     if len(set(new_clusters)) >= 2:
@@ -57,7 +57,7 @@ class LeidenClusteringEvaluator:
                 # Evaluate Silhouette
                 silhouette = []
                 for col in clustering_results.columns:
-                    pca_data_sub = pca_data.loc[clustering_results.index[clustering_results[col] != -1],].copy()
+                    pca_data_sub = pca_data.loc[clustering_results.index[clustering_results[col] != -1]].copy()
                     clusters = clustering_results.loc[clustering_results[col] != -1, col].values
                     silhouette.append(silhouette_score(pca_data_sub, clusters, metric='euclidean', sample_size=10000))
                 silhouette = np.median(silhouette)
@@ -94,7 +94,7 @@ class LeidenClusteringEvaluator:
         kneighbors_matrix = kneighbors_graph(X=pca_data, n_neighbors=n_neighbors)
         
         # Creating edges list
-        sources, targets = kneighbors_matrix.nonzero()
+        sources, targets = kneighbors_matrix.nonzero() # type: ignore
         edges = list(zip(sources, targets))
         
         # Building igraph object
