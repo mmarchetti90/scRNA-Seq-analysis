@@ -22,6 +22,7 @@ from os.path import abspath, isdir, exists
 from matplotlib import patches as mpatches
 from matplotlib.colors import Normalize, TwoSlopeNorm
 from matplotlib.patches import Rectangle
+from numpy.typing import NDArray
 from scipy.sparse import csr_array, dok_array, load_npz, save_npz, vstack
 from scipy.stats import hypergeom, mannwhitneyu, zscore
 from sklearn.decomposition import PCA
@@ -118,6 +119,8 @@ class IntegratedAnalysis:
         self.pseudotime_file = 'pseudotime.tsv.gz'
         self.cell_cycle_dir = f'{self.repo_name}/cell_cycle'
         self.cell_cycle_scores_file = 'cell_cycle_scores.tsv.gz'
+        self.cell_interactions_dir = f'{self.repo_name}/cell_interactions'
+        self.cell_interactions_file = 'cell_interactions.tsv.gz'
         self.plot_dir = f'{self.repo_name}/data_plots'
 
     ### ------------------------------------ ###
@@ -210,8 +213,15 @@ class IntegratedAnalysis:
         except:
             pass
 
+        # Load pseudotime
         try:
             self.load_trajectory_pseudotime(f'{self.trajectories_dir}/{self.pseudotime_file}')
+        except:
+            pass
+        
+        # Load cell_interactions
+        try:
+            self.load_cell_interactions(f'{self.cell_interactions_dir}/{self.cell_interactions_file}')
         except:
             pass
     
@@ -250,6 +260,16 @@ class IntegratedAnalysis:
         except:
             self.log_trace("ERROR: couldn't read cell cycle file")
             self.cell_cycle_scores = pd.DataFrame()
+
+    ### ------------------------------------ ###
+
+    def load_cell_interactions(self, data_path) -> None:
+
+        try:
+            self.cell_interactions = pd.read_csv(data_path, sep='\t', header=0)
+        except:
+            self.log_trace("ERROR: couldn't read cell interactions file")
+            self.cell_interactions = pd.DataFrame()
     
     ### ------------------------------------ ###
     
@@ -1958,6 +1978,126 @@ class IntegratedAnalysis:
             return pd.Series()
 
         return pseudobulk
+
+    ### ------------------------------------ ###
+    ### LIGAND RECEPTOR INTERACTIONS         ###
+    ### ------------------------------------ ###
+
+    def analyze_cell_interactions(self, interaction_pairs: pd.DataFrame, cells: list[int]=[], iterations: int=10000) -> None:
+
+        self.log_trace('Running cell interactions analysis')
+        self.log_trace('Prepping data')
+
+        # Create dir to store sparse matrices after preprocessing
+        if not exists(self.cell_interactions_dir):
+            makedirs(self.cell_interactions_dir)
+
+        # Label each cell with identities
+        cl_ti_ct = {cl : ct for _,(cl,ct) in self.cluster_identities.iterrows()}
+        cell_identities = np.array([cl_ti_ct[cl] for cl in self.clusters])
+
+        # Subset count data rows (cells) and update list of identities
+        if len(cells):
+            data_sub = csr_array(self.all_data[cells])
+            cell_identities = cell_identities[cells]
+        else:
+            data_sub = self.all_data.copy()
+
+        # Filter for detected genes
+        interaction_pairs = interaction_pairs.loc[
+            (interaction_pairs['receptor'].isin(self.all_genes)) &
+            (interaction_pairs['ligand'].isin(self.all_genes))
+        ]
+        
+        # Subset count data columns (genes) to make calculations faster
+        unique_ligands_and_receptors = np.unique(interaction_pairs.to_numpy().ravel()).tolist()
+        data_sub = csr_array(data_sub[:, [self.all_genes.index(lr) for lr in unique_ligands_and_receptors]])
+
+        # Score observed interactions scores
+        self.log_trace('Calculating observed interaction scores')
+        obs_scores = self.score_cell_interactions(data_sub, cell_identities, interaction_pairs, unique_ligands_and_receptors)
+
+        # Initialize dictionary to accumulate permutation scores for the null background
+        shuffle_score_lists = {key: [] for key in obs_scores.keys()}
+
+        # Run iterations to approximate null distribution
+        self.log_trace(f'Running {iterations} shuffling permutations for Z-test')
+        cell_identities_shuffle = cell_identities.copy()
+        for I in range(iterations):
+            if (I + 1) % 100 == 0 and I > 0:
+                print(f'Ran {I+1} iterations', end='\r')
+            # Shuffle identity labels while preserving cluster sizes
+            np.random.shuffle(cell_identities_shuffle)
+            # Score interactions after shuffling
+            shuffle_scores = self.score_cell_interactions(data_sub, cell_identities_shuffle, interaction_pairs, unique_ligands_and_receptors)
+            # Append to null distribution lists
+            for key in obs_scores.keys():
+                shuffle_score_lists[key].append(shuffle_scores.get(key, 0.0))
+
+        # Calculate Z-scores and significance
+        self.log_trace('Running statistics')
+        cell_interactions, cell_interactions_header = [], ['sender', 'receiver', 'ligand', 'receptor', 'observed_score', 'mean_shuffle_score', 'z_score', 'pval']
+        for key,s_obs in obs_scores.items():
+            # Extract details of ligand/receptor pair and find related null distribution
+            receptor, ligand, receiver, sender = key
+            null_distribution = np.array(shuffle_score_lists[key])
+            # Null distribution stats
+            mean_null = np.mean(null_distribution)
+            std_null = np.std(null_distribution)
+            # Z-score (safe)
+            if std_null > 0:
+                z_score = (s_obs - mean_null) / std_null
+            else:
+                z_score = 0.0
+            # P-value estimation (empirical) (faster than scipy.stats)
+            pval = np.sum(null_distribution >= s_obs) / iterations
+            cell_interactions.append((sender, receiver, ligand, receptor, s_obs, mean_null, z_score, pval))
+        cell_interactions = pd.DataFrame(cell_interactions, columns=cell_interactions_header)
+
+        # Benjamini-Hochberg adjustment
+        self.log_trace('Adjusting p-values')
+        cell_interactions.loc[:, 'padj'] = fdrcorrection(cell_interactions['pval'], alpha=0.05, is_sorted=False)[1]
+        self.cell_interactions = cell_interactions
+        cell_interactions.to_csv(f'{self.cell_interactions_dir}/{self.cell_interactions_file}', sep='\t', index=False)
+
+        self.log_trace('All done!')
+        self.log_trace(f'  * Cell interactions scores were saved to {self.cell_interactions_dir}/{self.cell_interactions_file}', False)
+
+    ### ------------------------------------ ###
+
+    @staticmethod
+    def score_cell_interactions(data: csr_array, cell_identities: NDArray, receptor_ligand_pairs: pd.DataFrame, unique_ligands_and_receptors: list[str]=[]) -> dict[tuple[str, str, str, str], float]:
+
+        # Extract unique cell types and ligands/receptors
+        if not len(unique_ligands_and_receptors):
+            unique_ligands_and_receptors = np.unique(receptor_ligand_pairs.to_numpy().ravel()).tolist()
+        unique_cell_identities = list(set(cell_identities))
+
+        # Init pd.DataFrame of cell types' mean normalized expressions
+        cell_type_norm_means = pd.DataFrame(
+            np.zeros((len(unique_cell_identities), len(unique_ligands_and_receptors)), dtype=float),
+            index=unique_cell_identities,
+            columns=unique_ligands_and_receptors
+        )
+
+        # Compute mean expression normalized with detection fraction for all cell types
+        for ct in unique_cell_identities:
+            # Find cells indices and subset counts
+            ct_idxs = np.where(cell_identities == ct)[0]
+            ct_data = csr_array(data[ct_idxs,])
+            # Compute mean normalized by detection fraction
+            ct_norm_means = ct_data.mean(axis=0) * (ct_data > 0).mean(axis=0)
+            cell_type_norm_means.loc[ct, :] = ct_norm_means
+        
+        # Compute scores
+        scores = {}
+        for _,(r,l) in receptor_ligand_pairs.iterrows():
+            for ct1 in unique_cell_identities:
+                for ct2 in unique_cell_identities:
+                    score = cell_type_norm_means.loc[ct1, r] * cell_type_norm_means.loc[ct2, l]
+                    scores[(r, l, ct1, ct2)] = score
+
+        return scores
 
     ### ------------------------------------ ###
     ### PLOTS                                ###
