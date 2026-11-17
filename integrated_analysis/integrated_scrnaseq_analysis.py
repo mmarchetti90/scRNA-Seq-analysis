@@ -11,7 +11,7 @@ import pandas as pd
 import pickle as pk
 import random
 import scanorama
-import seaborn
+import seaborn as sns
 import umap
 
 from datetime import datetime
@@ -69,9 +69,9 @@ class IntegratedAnalysis:
         cluster_colors = [cluster_colors[i1 + i2] for i2 in range(4) for i1 in range(0, len(cluster_colors), 4) if i1 + i2 < len(cluster_colors)] # Spacing colors
         random_indexes = [33, 18, 41, 43, 34, 8, 56, 31, 16, 25, 2, 7, 46, 36, 5, 22, 11, 26, 53, 9, 14, 19, 58, 23, 1, 42, 55, 61, 35, 49, 6, 15, 44, 30, 47, 38, 37, 54, 60, 13, 51, 39, 48, 50, 3, 10, 21, 52, 24, 57, 28, 27, 32, 17, 20, 40, 12, 29, 59, 45]
         cluster_colors = [cluster_colors[ri] for ri in random_indexes]
-        self.cluster_colors = seaborn.color_palette(cluster_colors, as_cmap=True)
+        self.cluster_colors = sns.color_palette(cluster_colors, as_cmap=True)
         """
-        self.cluster_colors = seaborn.color_palette("tab20") * 10
+        self.cluster_colors = sns.color_palette("tab20") * 10
             
         # Setting maximum number of cells from sparse matrices to load in memory
         self.max_cells_in_memory = max_cells_in_memory
@@ -113,7 +113,7 @@ class IntegratedAnalysis:
         self.clusters_dir = f'{self.repo_name}/clustering'
         self.cluster_embeddings_file = 'cluster_embeddings.tsv.gz'
         self.cluster_markers_file = 'cluster_markers.tsv.gz'
-        self.cluster_identities_file = 'cluster_identities.tsv.gz'
+        self.cluster_identities_file = 'cluster_identities.tsv'
         self.trajectories_dir = f'{self.repo_name}/trajectories'
         self.trajectories_file = 'trajectory_analysis.txt'
         self.pseudotime_file = 'pseudotime.tsv.gz'
@@ -1456,7 +1456,7 @@ class IntegratedAnalysis:
      
     ### ------------------------------------ ###
     
-    def find_clusters_markers(self, min_fc: float=0.25, min_pct: float=0.1, min_cells_in_cluster: int=50) -> None:
+    def find_clusters_markers(self, min_fc: float=0.25, min_pct: float=0.1, p_thr: float=0.05, min_cells_in_cluster: int=50) -> None:
 
         self.log_trace('Finding cluster markers')
 
@@ -1480,7 +1480,7 @@ class IntegratedAnalysis:
                 continue
             self.log_trace(f'  * Finding markers of cluster {cl}')
             # Running analysis
-            significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs = self.compare_populations(self.all_genes, self.all_data, cluster_cells, other_cells, self.max_cells_in_memory, min_fc, min_pct)
+            significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs = self.compare_populations(self.all_genes, self.all_data, cluster_cells, other_cells, self.max_cells_in_memory, min_fc, min_pct, p_thr)
             # Storing data
             cluster_markers["cluster"].extend([cl for _ in range(len(significant_genes_name))])
             cluster_markers["gene_name"].extend(significant_genes_name)
@@ -1616,11 +1616,11 @@ class IntegratedAnalysis:
     ### ------------------------------------ ###
     
     @staticmethod
-    def compare_populations(gene_names: list[str], data: csr_array, pop1: np.ndarray, pop2: np.ndarray, max_cells_in_memory: int=10000, min_fc: float=0.25, min_pct: float=0.1) -> tuple[list[str], np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def compare_populations(gene_names: list[str], data: csr_array, pop1: np.ndarray, pop2: np.ndarray, max_cells_in_memory: int=10000, min_fc: float=0.25, min_pct: float=0.1, p_thr: float=0.05) -> tuple[list[str], np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         
         # Split all_data into pop1 and pop2
-        pop1_data = csr_array(data[pop1, ])
-        pop2_data = csr_array(data[pop2, ])
+        pop1_data = csr_array(data[pop1,])
+        pop2_data = csr_array(data[pop2,])
         
         # Transposing matrices from cell-to-genes to genes-to-cells to make calculations (slightly) faster
         # Remember that csr_array slicing is efficient along rows
@@ -1650,20 +1650,21 @@ class IntegratedAnalysis:
         else:
             pvals = []
             for gene in range(pop1_data.shape[1]):
-                pval = mannwhitneyu(pop1_data[:, gene].toarray(), pop2_data[:, gene].toarray(), alternative="two-sided", axis=0).pvalue[0]
+                pval = mannwhitneyu(pop1_data[:, [gene]].toarray(), pop2_data[:, [gene]].toarray(), alternative="two-sided", axis=0).pvalue[0]
                 pvals.append(pval)
             pvals = np.array(pvals)
         _, padjs = fdrcorrection(pvals, alpha=0.05, is_sorted=False)
         
         # Filtering
-        significant_genes_name = np.array(gene_names)[features_to_test][padjs < 0.05].tolist()
-        log2_fc = log2_fc[features_to_test][padjs < 0.05]
-        pop1_expression = pop1_expression[features_to_test][padjs < 0.05]
-        pop2_expression = pop2_expression[features_to_test][padjs < 0.05]
-        pct_pop1 = pct_pop1[features_to_test][padjs < 0.05]
-        pct_pop2 = pct_pop2[features_to_test][padjs < 0.05]
-        pvals = pvals[padjs < 0.05]
-        padjs = padjs[padjs < 0.05]
+        padj_filter = (padjs < p_thr)
+        significant_genes_name = np.array(gene_names)[features_to_test][padjs < p_thr].tolist()
+        log2_fc = log2_fc[features_to_test][padjs < p_thr]
+        pop1_expression = pop1_expression[features_to_test][padj_filter]
+        pop2_expression = pop2_expression[features_to_test][padj_filter]
+        pct_pop1 = pct_pop1[features_to_test][padj_filter]
+        pct_pop2 = pct_pop2[features_to_test][padj_filter]
+        pvals = pvals[padj_filter]
+        padjs = padjs[padj_filter]
         
         return significant_genes_name, log2_fc, pop1_expression, pop2_expression, pct_pop1, pct_pop2, pvals, padjs
 
@@ -2149,7 +2150,7 @@ class IntegratedAnalysis:
         
         # Plotting
         plt.figure(figsize=(5, 5))
-        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='CellCyclePhase', hue_order=['G1PM', 'G1', 'S', 'G2M'], palette='Set1', marker='.', s=dot_size, linewidth=0)
+        sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='CellCyclePhase', hue_order=['G1PM', 'G1', 'S', 'G2M'], palette='Set1', marker='.', s=dot_size, linewidth=0)
         legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell Cycle Phase', markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
@@ -2201,7 +2202,7 @@ class IntegratedAnalysis:
 
         # Plotting
         plt.figure(figsize=(5, 5))
-        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', hue_order=cell_types, palette=color_palette, marker='.', s=dot_size, linewidth=0)
+        sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Cell type', hue_order=cell_types, palette=color_palette, marker='.', s=dot_size, linewidth=0)
         legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Cell type', ncol=legend_cols, markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
@@ -2248,7 +2249,7 @@ class IntegratedAnalysis:
     
         # Plotting
         plt.figure(figsize=(5, 5))
-        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
+        sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
         legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols, markerscale=markerscale)
         for c_num,cl in enumerate(centers):
             x, y = cl
@@ -2256,6 +2257,35 @@ class IntegratedAnalysis:
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
         plt.savefig(f'{self.plot_dir}/Clusters_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+        plt.close()
+    
+    ### ------------------------------------ ###
+    
+    def plot_cluster_markers(self, cluster: int, markers: list[str]=[], top_markers_to_plot: int=15) -> None:
+        
+        # Check plot directory
+        self.check_plot_dir()
+        
+        # Check markers to plot
+        if not hasattr(self, 'cluster_markers'):
+            print('ERROR: cluster markers are absent.')
+            return None
+        if not len(markers):
+            # Use top_markers_to_plot if markers were not specified
+            markers_data = self.cluster_markers.loc[self.cluster_markers['cluster'] == cluster].sort_values('padj').iloc[:top_markers_to_plot]
+        else:
+            markers_data = self.cluster_markers.loc[(self.cluster_markers['cluster'] == cluster) & self.cluster_markers['gene_name'].isin(markers)]
+        markers_data = markers_data.sort_values('log2FC')
+        
+        # Plotting
+        plt.figure(figsize=(5, 7))
+        sns.scatterplot(data=markers_data, x='log2FC', y='gene_name', hue='padj', size='cluster_pct', palette='Reds_r', marker='.', linewidth=0.5, edgecolor='black', legend=None)
+        #legend = plt.legend(bbox_to_anchor=(1, 1), loc='best')
+        plt.vlines(0, markers_data['gene_name'].values[0], markers_data['gene_name'].values[-1], colors='gray', linestyles='--')
+        plt.xlabel('$log_2FC$')
+        plt.ylabel(None)
+        #plt.savefig(f'{self.plot_dir}/Cluster-{cluster}_markers.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
+        plt.savefig(f'{self.plot_dir}/Cluster-{cluster}_markers.png', bbox_inches='tight', dpi=300)
         plt.close()
     
     ### ------------------------------------ ###
@@ -2295,7 +2325,7 @@ class IntegratedAnalysis:
     
         # Plotting
         plt.figure(figsize=(5, 5))
-        seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Datasets', palette=color_palette, marker='.', s=dot_size, linewidth=0)
+        sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Datasets', palette=color_palette, marker='.', s=dot_size, linewidth=0)
         legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Datasets', ncol=legend_cols, markerscale=markerscale)
         plt.xlabel('UMAP 1')
         plt.ylabel('UMAP 2')
@@ -2341,7 +2371,7 @@ class IntegratedAnalysis:
             # Plotting
             plt.figure(figsize=(6, 5))
             if plot_data.Expression.min() != plot_data.Expression.max():
-                ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', hue_norm=(0, plot_data.Expression.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+                ax = sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', hue_norm=(0, plot_data.Expression.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
                 norm = Normalize(0, plot_data.Expression.max())
                 sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
                 sm.set_array([])
@@ -2352,12 +2382,64 @@ class IntegratedAnalysis:
                 plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_UMAP.png', bbox_inches='tight', dpi=300)
                 plt.close()
             else:
-                seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', palette='viridis', marker='.', s=dot_size, linewidth=0)
+                sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Expression', palette='viridis', marker='.', s=dot_size, linewidth=0)
                 legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=f'{target_gene} Expression', markerscale=markerscale)
                 plt.xlabel('UMAP 1')
                 plt.ylabel('UMAP 2')
                 plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_UMAP.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
                 plt.close()
+        else:
+            self.log_trace(f'Target gene {target_gene}, not found')
+    
+    ### ------------------------------------ ###
+    
+    def plot_gene_expression_across_clusters(self, target_gene: str, datasets: list[str]=[], clusters: list[int]=[], dot_size: float=1.5) -> None:
+        
+        # Check plot directory
+        self.check_plot_dir()
+        
+        # Creating a filter for cells of interest
+        if not len(datasets):
+            dataset_filter = np.array([True for _ in range(self.all_data.shape[0])])
+        else:
+            dataset_filter = np.array([True if sum([1 for ds in datasets if cell.endswith(f'_{ds}')]) > 0 else False for cell in self.all_cells])
+        if not len(clusters):
+            cluster_filter = np.array([True for _ in range(self.all_data.shape[0])])
+        else:
+            cluster_filter = np.isin(self.clusters, clusters)
+        cell_filter = list(dataset_filter & cluster_filter)
+        
+        # Extracting expression data for target_gene
+        if target_gene not in list(self.all_genes):
+            toggle = False
+        else:
+            toggle = True
+            gene_index = self.all_genes.index(target_gene)
+            expression = csr_array(self.all_data[:, [gene_index]]).toarray().reshape(-1)
+        if toggle:
+            # Adding expression data
+            plot_data = pd.DataFrame({
+                'Cluster' : self.clusters,
+                'Expression' : expression
+            })
+            # Subsetting cells
+            plot_data = plot_data.loc[cell_filter]
+            # Plotting ### TURN INTO RAINCLOUD ###
+            n_clusters = len(set(plot_data['Cluster']))
+            plt.figure(figsize=(max(7, 0.5 * n_clusters), 5))
+            ax = sns.stripplot(
+                plot_data, x='Cluster', y='Expression', hue='Cluster', dodge=False,
+                size=dot_size, linewidth=0.5, edgecolor='black', palette=self.cluster_colors[:n_clusters],
+                legend=False
+            )
+            sns.boxplot(
+                plot_data, x='Cluster', y='Expression', hue='Cluster', dodge=False,
+                showcaps=True, boxprops={'facecolor':'None'}, showfliers=False, linewidth=1, whiskerprops={'linewidth':1},
+                ax=ax, legend=False
+            )
+            plt.ylabel(f'{target_gene} Expression')
+            plt.savefig(f'{self.plot_dir}/{target_gene}_Expression_DotsAndBox.png', bbox_inches='tight', dpi=300)
+            plt.close()
         else:
             self.log_trace(f'Target gene {target_gene}, not found')
     
@@ -2406,7 +2488,7 @@ class IntegratedAnalysis:
             vmin, vmax = -abs_smallest, abs_smallest
             # Plot
             norm = TwoSlopeNorm(vmin=vmin, vcenter=0, vmax=vmax)
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=norm, palette='RdBu_r', marker='.', s=dot_size, linewidth=0)
+            ax = sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', hue_norm=norm, palette='RdBu_r', marker='.', s=dot_size, linewidth=0)
             sm = plt.cm.ScalarMappable(cmap="RdBu_r", norm=norm)
             sm.set_array([])
             plt.colorbar(sm, ax=ax)
@@ -2416,7 +2498,7 @@ class IntegratedAnalysis:
             plt.savefig(f'{self.plot_dir}/{gene_set_name}_Expression_UMAP.png', bbox_inches='tight', dpi=300)
             plt.close()
         else:
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', palette='viridis', marker='.', s=dot_size, linewidth=0)
+            sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Score', palette='viridis', marker='.', s=dot_size, linewidth=0)
             legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Gene Set Expression', markerscale=markerscale)
             plt.xlabel('UMAP 1')
             plt.ylabel('UMAP 2')
@@ -2425,13 +2507,13 @@ class IntegratedAnalysis:
     
     ### ------------------------------------ ###
     
-    def plot_marker_set(self, cell_type_markers: pd.DataFrame, prefix: str='markers', fig_x_size: float=10, fig_y_size: float=6, width_ratios: list[float]=[6, 0.5, 4]) -> None:
+    def plot_marker_set(self, cell_type_markers: pd.DataFrame, prefix: str='markers', fig_x_size: float=10, fig_y_size: float=6, width_ratios: list[float]=[6, 0.5, 4], correct_for_detection: float=False) -> None:
 
         # Format list of markers, their annotation, and their index
         min_markers = 1
         all_markers, markers_annot, all_markers_idx = [], [], []
         for _,(cell_name,markers) in cell_type_markers.iterrows():
-            markers_cleaned = [m for m in markers.split(';') if m in self.all_genes]
+            markers_cleaned = [m for m in markers.split(',') if m in self.all_genes]
             markers_idx = [self.all_genes.index(mc) for mc in markers_cleaned]
             if len(markers_cleaned) >= min_markers:
                 all_markers += markers_cleaned
@@ -2439,7 +2521,7 @@ class IntegratedAnalysis:
                 all_markers_idx += markers_idx
 
         # Format for plotting
-        colors = 4 * seaborn.color_palette('tab20')
+        colors = 4 * sns.color_palette('tab20')
         unique_markers = np.sort(np.unique(markers_annot)).tolist()
         annot_data = pd.DataFrame({'annotation' : markers_annot,
                                    'color' : [colors[unique_markers.index(ma)] for ma in markers_annot]},
@@ -2450,15 +2532,18 @@ class IntegratedAnalysis:
         # Add mean expression values
         for cl in np.sort(np.unique(self.clusters)):
             cl_cells = np.where(self.clusters == cl)[0]
-            cl_mean = np.mean(csr_array(self.all_data[cl_cells,][:, all_markers_idx]).toarray(), axis=0).tolist()
-            plot_data.loc[:, f'cluster_{cl}'] = cl_mean.copy()
+            cl_mean = np.mean(csr_array(self.all_data[cl_cells,][:, all_markers_idx]).toarray(), axis=0)
+            if correct_for_detection:
+                cl_pct = np.sum(csr_array(self.all_data[cl_cells,][:, all_markers_idx]).toarray() != 0, axis=0) / len(cl_cells)
+                cl_mean = cl_mean * cl_pct
+            plot_data.loc[:, f'cluster_{cl}'] = cl_mean.tolist().copy()
 
         # Remove genes that are not expressed in any sample
         annot_data = annot_data.loc[plot_data.sum(axis=1) > 0]
         plot_data = plot_data.loc[plot_data.sum(axis=1) > 0]
 
         # Clustering
-        cm = seaborn.clustermap(plot_data, z_score=0, center=0, vmin=-3, vmax=3, row_colors=annot_data['color'].values, row_cluster=False, col_cluster=True)
+        cm = sns.clustermap(plot_data, z_score=0, center=0, vmin=-3, vmax=3, row_colors=annot_data['color'].values, row_cluster=False, col_cluster=True)
         plt.close()
         col_order = cm.dendrogram_col.reordered_ind # type: ignore
         plot_data = plot_data.iloc[:, col_order]
@@ -2467,11 +2552,11 @@ class IntegratedAnalysis:
         plot_data_zscored = zscore(plot_data, axis=1)
 
         # Color palette
-        palette = seaborn.diverging_palette(h_neg=260, h_pos=15, s=75, l=50, sep=1, as_cmap=True)
+        palette = sns.diverging_palette(h_neg=260, h_pos=15, s=75, l=50, sep=1, as_cmap=True)
         # Init plot
         fig, axes = plt.subplots(1, 3, figsize=(fig_x_size, fig_y_size), gridspec_kw={'width_ratios': width_ratios})
         # Heatmap
-        seaborn.heatmap(plot_data_zscored, center=0, vmin=-3, vmax=3, cmap=palette, ax=axes[0], cbar_ax=axes[1], cbar=True)
+        sns.heatmap(plot_data_zscored, center=0, vmin=-3, vmax=3, cmap=palette, ax=axes[0], cbar_ax=axes[1], cbar=True)
         axes[0].set_yticks(np.arange(0.5, annot_data.shape[0], 1), annot_data.index.values)
         axes[0].tick_params(axis='y', which='major', pad=25, length=0, labelsize=6)
         axes[0].tick_params(axis='x', which='major', labelsize=6)
@@ -2546,7 +2631,7 @@ class IntegratedAnalysis:
             plot_data.sort_values(by="Pseudotime", axis = 0, ascending = True, inplace = True)
             # Plot
             plt.figure(figsize=(6, 5))
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', hue_norm=(0, plot_data.Pseudotime.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            ax = sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Pseudotime', hue_norm=(0, plot_data.Pseudotime.max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
             norm = Normalize(0, plot_data.Pseudotime.max())
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])
@@ -2561,7 +2646,7 @@ class IntegratedAnalysis:
             plt.savefig(f'{self.plot_dir}/Trajectories_UMAP_Pseudotime.png', bbox_inches='tight', dpi=300)
         else:
             plt.figure(figsize=(5, 5))
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
+            sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue='Clusters', palette=color_palette, marker='.', s=dot_size, linewidth=0)
             legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title='Clusters', ncol=legend_cols, markerscale=markerscale)
             for br in self.branches:
                 cluster_indexes = [clusters.index(cl) for cl in br]
@@ -2610,14 +2695,14 @@ class IntegratedAnalysis:
         if categorical:
             # Subsetting cluster color palette
             color_palette = self.cluster_colors[:len(np.unique(variable_values))]
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette=color_palette, marker='.', s=dot_size, linewidth=0)
+            sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette=color_palette, marker='.', s=dot_size, linewidth=0)
             legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=variable_name, markerscale=markerscale)
             plt.xlabel('UMAP 1')
             plt.ylabel('UMAP 2')
             plt.savefig(plot_name, bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
             plt.close()
         elif plot_data[variable_name].min() == plot_data[variable_name].max():
-            seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette='viridis', marker='.', s=dot_size, linewidth=0)
+            sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, palette='viridis', marker='.', s=dot_size, linewidth=0)
             legend = plt.legend(bbox_to_anchor=(1, 1), loc='best', title=variable_name, markerscale=markerscale)
             plt.xlabel('UMAP 1')
             plt.ylabel('UMAP 2')
@@ -2625,7 +2710,7 @@ class IntegratedAnalysis:
             plt.close()
         else:
             
-            ax = seaborn.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, hue_norm=(plot_data[variable_name].min(), plot_data[variable_name].max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
+            ax = sns.scatterplot(data=plot_data, x='UMAP_1', y='UMAP_2', hue=variable_name, hue_norm=(plot_data[variable_name].min(), plot_data[variable_name].max()), palette='viridis', marker='.', s=dot_size, linewidth=0)
             norm = Normalize(plot_data[variable_name].min(), plot_data[variable_name].max())
             sm = plt.cm.ScalarMappable(cmap="viridis", norm=norm)
             sm.set_array([])
