@@ -49,15 +49,14 @@ class IntegratedAnalysis:
         0 - load_manifest;
         1 - preprocess_samples;
         2 - find_common_most_variable_features;
-        3 - integrate_data;
-        4 - merge_integrated_datasets;
-        5 - reduce_dimensions;
-        6 - cluster_cells;
-        7 - find_clusters_markers;
-        8 - score_cluster_identity;
-        9 - create_mst;
-        10 - generate_pseudotime;
-        11 - score_cell_cycle or score_gene_set;
+        3 - integrate_data or scanorama_integration;
+        4 - reduce_dimensions;
+        5 - cluster_cells;
+        6 - find_clusters_markers;
+        7 - score_cluster_identity;
+        8 - create_mst;
+        9 - generate_pseudotime;
+        10 - score_cell_cycle or score_gene_set;
     """
 
     def __init__(self, max_cells_in_memory: int=100000, desired_feature_type: str='Gene Expression', repo_name: str='scrna_analysis') -> None:
@@ -103,12 +102,14 @@ class IntegratedAnalysis:
     def init_paths(self) -> None:
 
         # Init repo dirs standard paths
+        self.raw_counts_dir = f'{self.repo_name}/raw_counts'
         self.preprocessed_dir = f'{self.repo_name}/preprocessed_data'
         self.hvgs_dir = f'{self.repo_name}/hvgs'
         self.hvgs_file = 'higly_variable_genes.tsv.gz'
         self.integrated_data_dir = f'{self.repo_name}/integrated_data'
         self.integrated_pca_embdeddings_file = 'integrated_pca_embdeddings.tsv.gz'
         self.merged_data_dir = f'{self.repo_name}/merged_data'
+        self.merged_raw_data_dir = f'{self.repo_name}/merged_raw_data'
         self.lower_dimensions_dir = f'{self.repo_name}/lower_dimensions'
         self.clusters_dir = f'{self.repo_name}/clustering'
         self.cluster_embeddings_file = 'cluster_embeddings.tsv.gz'
@@ -171,9 +172,15 @@ class IntegratedAnalysis:
         Wrapper to load all identifiable elements of a repo
         """
 
-        # Load count merged matrix
+        # Load raw counts merged matrix
         try:
-            self.load_merged_datasets(self.merged_data_dir)
+            self.load_merged_datasets(self.merged_data_dir, data_type='raw')
+        except:
+            pass
+
+        # Load processed counts merged matrix
+        try:
+            self.load_merged_datasets(self.merged_data_dir, data_type='processed')
         except:
             pass
         
@@ -315,15 +322,25 @@ class IntegratedAnalysis:
     
     ### ------------------------------------ ###
     
-    def load_merged_datasets(self, data_path: str) -> None:
+    def load_merged_datasets(self, data_path: str, data_type: str='processed') -> None:
         
         try:
             self.datasets_metadata = pd.read_csv(f'{data_path}/datasets_metadata.tsv.gz', sep='\t', header=0)
-            self.all_cells, self.all_genes, self.all_data = self.load_sparse_matrix(data_path, save_npz_if_missing=False)
-            self.merged_data_dir = data_path
+            loaded_data = self.load_sparse_matrix(data_path, save_npz_if_missing=False)
+            if data_type == 'processed':
+                self.all_cells, self.all_genes, self.all_data = loaded_data
+                self.merged_data_dir = data_path
+            elif data_type == 'raw':
+                self.all_cells, self.all_genes, self.all_raw_data = loaded_data
+                self.merged_raw_data_dir = data_path
+            else:
+                self.log_trace(f'ERROR: invalid data_type option: {data_type}')
         except:
             self.log_trace("ERROR: couldn't read merged dataset files")
-            self.merged_data_dir = ''
+            if data_type == 'processed':
+                self.merged_data_dir = ''
+            else:
+                self.merged_raw_data_dir = ''
     
     ### ------------------------------------ ###
     
@@ -633,7 +650,9 @@ class IntegratedAnalysis:
         
         self.log_trace('Preprocessing data')
         
-        # Create dir to store sparse matrices after preprocessing
+        # Create dirs to store sparse matrices after preprocessing
+        if not exists(self.raw_counts_dir):
+            makedirs(self.raw_counts_dir)
         if not exists(self.preprocessed_dir):
             makedirs(self.preprocessed_dir)
         
@@ -641,7 +660,7 @@ class IntegratedAnalysis:
         for _,row in self.manifest.iterrows():
             # Extract info
             label, path, norm_type = row
-            self.log_trace(f'  * Reading {path}', False)
+            self.log_trace(f'  * Reading {path}', True)
             
             # Load data
             if isdir(path): # Data is a sparse matrix
@@ -671,13 +690,14 @@ class IntegratedAnalysis:
                 barcodes, matrix = self.remove_cells_with_low_counts(barcodes, matrix, min_cell_raw_counts)
                 # Normalize data
                 self.log_trace('    * Normalizing counts', False)
-                matrix = self.normalize_data(matrix, skip_first_proportional_fitting=False)
+                norm_matrix = self.normalize_data(matrix, skip_first_proportional_fitting=False)
             elif norm_type in ['cpm', 'rpkm']: # Performing log1p normalization and proportional fitting
                 self.log_trace('    * Normalizing counts', False)
-                matrix = self.normalize_data(matrix, skip_first_proportional_fitting=True)
+                norm_matrix = self.normalize_data(matrix, skip_first_proportional_fitting=True)
             elif norm_type in ['pflog1ppf', 'pool_norm']: # Preferred normalizations, data is passed as is
-                pass
+                norm_matrix = matrix
             else:
+                norm_matrix = matrix
                 self.log_trace(f'    * WARNING: could not determine normalization method of {path}', False)
                 self.log_trace('    * Data will be used as is...', False)
             
@@ -686,10 +706,12 @@ class IntegratedAnalysis:
             
             # Saving sparse matrix to temporary file
             self.log_trace('    * Saving sparse matrix', False)
-            _ = self.save_sparse_matrix_to_path(self.preprocessed_dir, label, barcodes, features, matrix)
-        
+            _ = self.save_sparse_matrix_to_path(self.raw_counts_dir, label, barcodes, features, matrix)
+            _ = self.save_sparse_matrix_to_path(self.preprocessed_dir, label, barcodes, features, norm_matrix)
+
         self.log_trace('Preprocessing done!')
-        self.log_trace(f'  * Data was saved to sparse matrices in {self.preprocessed_dir}', False)
+        self.log_trace(f'  * Raw data was saved to sparse matrices in {self.raw_counts_dir}', False)
+        self.log_trace(f'  * Processed data was saved to sparse matrices in {self.preprocessed_dir}', False)
 
     ### ------------------------------------ ###
         
@@ -778,25 +800,17 @@ class IntegratedAnalysis:
             except:
                 features_type = []
             
-            # Init sparse matrix
-            sparse_matrix = dok_array((cells_num, genes_num))
-            
-            # Parse sparse
-            for N,(start,stop) in enumerate(zip(np.array(h5_data['matrix/indptr'], dtype=int), np.array(h5_data['matrix/indptr'], dtype=int)[1:])):
-                # Extracting cell data
-                counts = np.array(h5_data['matrix/data'], dtype=int)[start : stop]
-                indexes = np.array(h5_data['matrix/indices'], dtype=int)[start : stop]
-                # Update matrix
-                sparse_matrix[N, indexes] = counts
-            
+            # Parse sparse data and generate csr_array
+            rows = np.array([N for N,(start,stop) in enumerate(zip(np.array(h5_data['matrix/indptr'], dtype=int), np.array(h5_data['matrix/indptr'], dtype=int)[1:])) for _ in range(stop - start)], dtype=int)
+            columns = np.array(h5_data['matrix/indices'], dtype=int)
+            counts = np.array(h5_data['matrix/data'], dtype=int)
+            sparse_matrix = csr_array((counts, (rows, columns)), shape=(cells_num, genes_num))
+
             # Filter features based on type
             if len(features_type) and desired_feature_type in ['Gene Expression', 'Peak']:
                 features_filter = np.where(np.array(features_type) == desired_feature_type)[0]
                 features = np.array(gene_names)[features_filter].tolist()
-                sparse_matrix = sparse_matrix[:, features_filter]
-    
-            # Convert to csr_array
-            sparse_matrix = csr_array(sparse_matrix)
+                sparse_matrix = csr_array(sparse_matrix[:, features_filter])
         
         return barcodes, features, sparse_matrix
     
@@ -981,7 +995,87 @@ class IntegratedAnalysis:
     ### DATA INTEGRATION                     ###
     ### ------------------------------------ ###
     
-    def integrate_data(self, data_path: str='', use_highly_variable_genes: bool=True, union: bool=False, adjust_library_size: bool=True, use_scanorama_embeddings: bool=True, max_pca_components: int=50) -> None:
+    def integrate_datasets(self, data_path: str='', adjust_library_size: bool=False, data_type='processed') -> None:
+        
+        self.log_trace(f'Merging {data_type} data to single dataset')
+        
+        # Define path to integrated sparce matrices folder
+        if not len(data_path):
+            if hasattr(self, 'integrated_data_dir') and data_type == 'processed':
+                data_path = self.integrated_data_dir
+            elif hasattr(self, 'merged_data_dir') and data_type == 'processed':
+                data_path = self.merged_data_dir
+            elif hasattr(self, 'merged_raw_data_dir') and data_type == 'raw':
+                data_path = self.merged_raw_data_dir
+            else:
+                self.log_trace('  * ERROR: missing data_path value', False)
+                return None
+            self.log_trace(f'  * data_path was automatically set to {data_path}', False)
+        
+        # Check that data_path exists
+        if not exists(data_path):
+            self.log_trace('  * ERROR: bad data_path value', False)
+            return None
+
+        # Define output dir
+        if data_type == 'processed':
+            merged_data_dir = self.merged_data_dir
+        else:
+            merged_data_dir = self.merged_raw_data_dir
+        
+        # Create directory to store the merged sparse matrix
+        if not exists(merged_data_dir):
+            makedirs(merged_data_dir)
+        
+        # Load integrated data
+        datasets_labels, datasets, cells_list, genes_list = self.load_all_matrices_in_path(data_path)
+        
+        # Correcting for library size
+        if adjust_library_size:
+            datasets_target_size = np.median(np.concatenate([ds.sum(axis=1).ravel() for ds in datasets])).astype(float) # type: ignore
+            datasets = [self.proportional_fitting(ds, datasets_target_size) for ds in datasets]
+        
+        # Merge datasets
+        datasets_metadata, all_cells, all_genes, all_data = self.merge_datasets(datasets_labels, datasets, cells_list, genes_list, desired_genes=[])
+        
+        # Store in class
+        self.datasets_metadata = datasets_metadata
+        self.all_cells = all_cells
+        self.all_genes = all_genes
+        self.all_data = all_data
+        
+        # Save metadata
+        self.log_trace('  * Saving datasets metadata to file', False)
+        datasets_metadata.to_csv(f'{merged_data_dir}/datasets_metadata.tsv.gz', sep='\t', index=False)
+
+        # Save barcodes
+        self.log_trace('  * Saving merged barcodes to file', False)
+        out_text = ('\n'.join(all_cells)).encode()
+        out_text += b'\n'
+        with gzip.open(f'{merged_data_dir}/all_barcodes.tsv.gz', 'wb') as output:
+            output.write(out_text)
+        
+        # Save features
+        self.log_trace('  * Saving merged gene names to file', False)
+        out_text = ('\n'.join(all_genes)).encode()
+        out_text += b'\n'
+        with gzip.open(f'{merged_data_dir}/all_features.tsv.gz', 'wb') as output:
+            output.write(out_text)
+        
+        # Save matrix as npz
+        self.log_trace('  * Saving integrated sparse matrix to file', False)
+        save_npz(f'{merged_data_dir}/all_data_matrix.mtx.npz', all_data, compressed=True)
+
+        # Save matrix as 10X Genomics mtx file
+        self.log_trace('  * Saving integrated sparse matrix to file in 10X Genomics format', False)
+        self.csr_to_mtx(all_data, out_name=f'{merged_data_dir}/all_data_matrix.mtx.gz', max_cells=self.max_cells_in_memory)
+        
+        self.log_trace('All done!')
+        self.log_trace(f'  * Data was saved to sparse matrices in {merged_data_dir}', False)
+
+    ### ------------------------------------ ###
+    
+    def scanorama_integration(self, data_path: str='', use_highly_variable_genes: bool=True, union: bool=False, adjust_library_size: bool=True, use_scanorama_embeddings: bool=True, max_pca_components: int=50) -> None:
         
         # Data integration with Scanorama
         self.log_trace('Integrating data using Scanorama')
@@ -1041,77 +1135,8 @@ class IntegratedAnalysis:
         self.log_trace('  * Data was saved to sparse matrices in {self.integrated_data_dir}', False)
         
         # Merging integrated dataset
-        self.merge_integrated_datasets(self.integrated_data_dir, False)
+        self.integrate_datasets(self.integrated_data_dir, False)
     
-    ### ------------------------------------ ###
-    
-    def merge_integrated_datasets(self, data_path: str='', adjust_library_size: bool=False) -> None:
-        
-        self.log_trace('Merging integrated data to single dataset')
-        
-        # Define path to integrated sparce matrices folder
-        if not len(data_path):
-            try:
-                data_path = self.integrated_data_dir
-            except:
-                self.log_trace('  * ERROR: missing data_path value', False)
-                return None
-        
-        # Check that data_path exists
-        if not exists(data_path):
-            self.log_trace('  * ERROR: bad data_path value', False)
-            return None
-        
-        # Create directory to store the merged sparse matrix
-        if not exists(self.merged_data_dir):
-            makedirs(self.merged_data_dir)
-        
-        # Load integrated data
-        datasets_labels, datasets, cells_list, genes_list = self.load_all_matrices_in_path(data_path)
-        
-        # Correcting for library size
-        if adjust_library_size:
-            datasets_target_size = np.median(np.concatenate([ds.sum(axis=1).ravel() for ds in datasets])).astype(float) # type: ignore
-            datasets = [self.proportional_fitting(ds, datasets_target_size) for ds in datasets]
-        
-        # Merge datasets
-        datasets_metadata, all_cells, all_genes, all_data = self.merge_datasets(datasets_labels, datasets, cells_list, genes_list, desired_genes=[])
-        
-        # Store in class
-        self.datasets_metadata = datasets_metadata
-        self.all_cells = all_cells
-        self.all_genes = all_genes
-        self.all_data = all_data
-        
-        # Save metadata
-        self.log_trace('  * Saving datasets metadata to file', False)
-        datasets_metadata.to_csv(f'{self.merged_data_dir}/datasets_metadata.tsv.gz', sep='\t', index=False)
-
-        # Save barcodes
-        self.log_trace('  * Saving merged barcodes to file', False)
-        out_text = ('\n'.join(all_cells)).encode()
-        out_text += b'\n'
-        with gzip.open(f'{self.merged_data_dir}/all_barcodes.tsv.gz', 'wb') as output:
-            output.write(out_text)
-        
-        # Save features
-        self.log_trace('  * Saving merged gene names to file', False)
-        out_text = ('\n'.join(all_genes)).encode()
-        out_text += b'\n'
-        with gzip.open(f'{self.merged_data_dir}/all_features.tsv.gz', 'wb') as output:
-            output.write(out_text)
-        
-        # Save matrix as npz
-        self.log_trace('  * Saving integrated sparse matrix to file', False)
-        save_npz(f'{self.merged_data_dir}/all_data_matrix.mtx.npz', all_data, compressed=True)
-
-        # Save matrix as 10X Genomics mtx file
-        self.log_trace('  * Saving integrated sparse matrix to file in 10X Genomics format', False)
-        self.csr_to_mtx(all_data, out_name=f'{self.merged_data_dir}/all_data_matrix.mtx.gz', max_cells=self.max_cells_in_memory)
-        
-        self.log_trace('All done!')
-        self.log_trace('  * Data was saved to sparse matrices in {self.merged_data_dir}', False)
-
     ### ------------------------------------ ###
     ### DIMENSIONALITY REDUCTION             ###
     ### ------------------------------------ ###
@@ -1967,15 +1992,21 @@ class IntegratedAnalysis:
     ### PSEUDOBULK                           ###
     ### ------------------------------------ ###
 
-    def make_pseudobulk(self, cells: list[int], method: str='median') -> pd.Series:
+    def make_pseudobulk(self, cells: list[int], method: str='sum', data_type='raw') -> pd.Series:
 
-        data_sub = csr_array(self.all_data[cells]).toarray()
-        if method == 'median':
+        data_sub = (
+            csr_array(self.all_raw_data[cells]).toarray() if data_type != 'processed' else
+            csr_array(self.all_data[cells]).toarray()
+        )
+        if method == 'sum':
+            pseudobulk = pd.Series(np.sum(data_sub, axis=0), index=self.all_genes)
+        elif method == 'median':
             pseudobulk = pd.Series(np.median(data_sub, axis=0), index=self.all_genes)
         elif method == 'mean':
             pseudobulk = pd.Series(np.mean(data_sub, axis=0), index=self.all_genes)
         else:
             self.log_trace(f'ERROR: Unknown method for pseudobulk generation "{method}"')
+            self.log_trace('Valid methods are: "sum", "median", and "mean"', False)
             return pd.Series()
 
         return pseudobulk
@@ -2279,11 +2310,11 @@ class IntegratedAnalysis:
         
         # Plotting
         plt.figure(figsize=(5, 7))
-        sns.scatterplot(data=markers_data, x='log2FC', y='gene_name', hue='padj', size='cluster_pct', palette='Reds_r', marker='.', linewidth=0.5, edgecolor='black', legend=None)
+        sns.scatterplot(data=markers_data, x='log2FC', y='gene_name', hue='padj', size='cluster_pct', palette='Reds_r', marker='.', linewidth=0.5, edgecolor='black', legend=False)
         #legend = plt.legend(bbox_to_anchor=(1, 1), loc='best')
         plt.vlines(0, markers_data['gene_name'].values[0], markers_data['gene_name'].values[-1], colors='gray', linestyles='--')
         plt.xlabel('$log_2FC$')
-        plt.ylabel(None)
+        plt.ylabel('')
         #plt.savefig(f'{self.plot_dir}/Cluster-{cluster}_markers.png', bbox_extra_artists=(legend,), bbox_inches='tight', dpi=300)
         plt.savefig(f'{self.plot_dir}/Cluster-{cluster}_markers.png', bbox_inches='tight', dpi=300)
         plt.close()
