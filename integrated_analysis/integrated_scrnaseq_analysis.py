@@ -174,7 +174,7 @@ class IntegratedAnalysis:
 
         # Load raw counts merged matrix
         try:
-            self.load_merged_datasets(self.merged_data_dir, data_type='raw')
+            self.load_merged_datasets(self.merged_raw_data_dir, data_type='raw')
         except:
             pass
 
@@ -288,7 +288,7 @@ class IntegratedAnalysis:
         except:
             self.log_trace("ERROR: couldn't read clusters annotation file")
             self.clusters = np.array([])
-            self.clusters_dir = ''
+            #self.clusters_dir = ''
     
     ### ------------------------------------ ###
     
@@ -337,10 +337,10 @@ class IntegratedAnalysis:
                 self.log_trace(f'ERROR: invalid data_type option: {data_type}')
         except:
             self.log_trace("ERROR: couldn't read merged dataset files")
-            if data_type == 'processed':
-                self.merged_data_dir = ''
-            else:
-                self.merged_raw_data_dir = ''
+            #if data_type == 'processed':
+            #    self.merged_data_dir = ''
+            #else:
+            #    self.merged_raw_data_dir = ''
     
     ### ------------------------------------ ###
     
@@ -452,8 +452,8 @@ class IntegratedAnalysis:
             self.branches = [[int(cluster) for cluster in line.split('\t')] for line in open(data_path).read().split('\n')]
         except:
             self.log_trace("ERROR: couldn't read trajectory branches file")
-            self.trajectories_dir = '/'.join(abspath(data_path).split('/')[:-1])
-            self.trajectory_file_name = ''
+            #self.trajectories_dir = '/'.join(abspath(data_path).split('/')[:-1])
+            #self.trajectory_file_name = ''
             self.branches = []
     
     ### ------------------------------------ ###
@@ -1895,6 +1895,122 @@ class IntegratedAnalysis:
         self.log_trace(f'  * Trajectory analysis was saved to {self.trajectories_dir}', False)
     
     ### ------------------------------------ ###
+    ### GENE SET SCORE                       ###
+    ### ------------------------------------ ###
+
+    def score_gene_set_auc(self, genes_set: list[str], cell_filter: list[int]=[], top_fraction: float=0.05) -> NDArray:
+    
+        # Define indexes to randomly shuffle genes and break possible ties
+        rng = np.random.default_rng(42)
+        random_gene_order = np.array(range(self.all_data.shape[1]))
+        rng.shuffle(random_gene_order)
+        
+        # Find columns of count matrix corresponding to the genes
+        genes_set = [g for g in genes_set if g in self.all_genes]
+        genes_set_idx = np.where(np.isin(np.array(self.all_genes)[random_gene_order], genes_set))[0]
+        if not len(genes_set):
+            self.log_trace('ERROR: no genes from the set were found.')
+            return np.array([])
+        
+        # Update cell filter if empty
+        if not len(cell_filter):
+            cell_filter = list(range(self.all_data.shape[0]))
+        
+        # Extract basic dataset facts
+        n_genes = self.all_data.shape[1]
+        max_rank = int(np.ceil(top_fraction * n_genes))
+        
+        # Theoretical maximum AUC: if all genes in the set occupy ranks 0, 1, ..., k-1
+        k = min(len(genes_set_idx), max_rank)
+        max_possible_auc = np.sum(max_rank - np.arange(k))
+        
+        # Compute score for each cell
+        auc_scores = np.array([])
+        for start in range(0, len(cell_filter), self.max_cells_in_memory):
+            # Subset expresion data
+            stop = min(start + self.max_cells_in_memory, len(cell_filter))
+            expr_matrix = csr_array(self.all_data[cell_filter[start:stop], random_gene_order])
+            n_cells = stop - start
+            
+            # Sort by descending expression
+            order = np.argsort(-expr_matrix.toarray(), axis=1)
+            
+            # Find 0-based rank of every gene in each cell
+            ranks = np.empty_like(order)
+            rows = np.arange(n_cells)[:, None]
+            ranks[rows, order] = np.arange(n_genes)
+        
+            # Extract ranks of the target gene set and keep those within top_frac
+            set_ranks = ranks[:, genes_set_idx]
+            
+            # Each hit at rank r (< max_rank) contributes (max_rank - r) to the recovery area
+            raw_auc = np.sum(np.maximum(0, max_rank - set_ranks), axis=1)
+            auc_scores = np.concatenate([auc_scores, raw_auc])
+        
+        # Normalize AUC
+        auc_scores = auc_scores / max_possible_auc
+        
+        return auc_scores
+
+    ### ------------------------------------ ###
+
+    def score_gene_set_module(self, gene_set: list[str], gene_pool: list[str]=[], cell_filter: list[int]=[], bins: int=50, ctrl_genes_num: int=50):
+
+        # Subsetting gene_set and gene_list for detected genes
+        gene_set = [gene for gene in gene_set if gene in self.all_genes]
+        gene_pool = [gene for gene in gene_pool if gene in self.all_genes]
+
+        # Making sure that gene_set and gene_pool have len > 0
+        if not len(gene_set):
+            self.log_trace("Error: empty gene_set")
+            return None
+
+        # Checking gene pool
+        if not len(gene_pool):
+            gene_pool = self.all_genes
+
+        # Subset cell counts
+        if len(cell_filter):
+            count_data = csr_array(self.all_data[cell_filter])
+        else:
+            count_data = self.all_data.copy()
+
+        # Compute average gene expression levels
+        gene_means = np.array(count_data.mean(axis=0)).ravel()
+        
+        # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
+        bin_size = len(gene_means) // bins
+        expression_order = np.argsort(np.argsort(gene_means))
+        set_ranks = expression_order[np.isin(self.all_genes, gene_set)].tolist()
+        ctrl_indexes = []
+        for rank in set_ranks:
+            random_pool = np.where((expression_order >= (rank - bin_size // 2)) &
+                                   (expression_order <= (rank + bin_size // 2)) &
+                                   ~(np.isin(expression_order, set_ranks)))[0].tolist()
+            np.random.shuffle(random_pool)
+            ctrl_indexes.extend(random_pool[:ctrl_genes_num])
+        ctrl_indexes = list(set(ctrl_indexes)) # Removing duplicates
+
+        # Computing the mean of scaled expression values of gene_set genes for each cell
+        set_indexes = [self.all_genes.index(g) for g in gene_set if g in self.all_genes]
+        set_means = self.scale_features(csr_array(count_data[:, set_indexes])).mean(axis=1)
+        #if count_data.shape[0] <= self.max_cells_in_memory:
+        #    set_means = self.scale_features(csr_array(count_data[:, set_indexes])).mean(axis=1)
+        #else:
+        #    set_means = np.array([self.scale_features(csr_array(count_data[:, g])).reshape(-1) for g in set_indexes]).T.mean(axis=1)
+
+        # Computing the mean of scaled expression values of  ctrl_set genes for each cell
+        ctrl_means = self.scale_features(csr_array(count_data[:, ctrl_indexes])).mean(axis=1)
+        #if count_data.shape[0] <= self.max_cells_in_memory:
+        #    ctrl_means = self.scale_features(csr_array(count_data[:, ctrl_indexes])).mean(axis=1)
+        #else:
+        #    ctrl_means = np.array([self.scale_features(csr_array(count_data[:, g])).reshape(-1) for g in ctrl_indexes]).T.mean(axis=1)
+        
+        set_score = set_means - ctrl_means
+        
+        return set_score
+
+    ### ------------------------------------ ###
     ### CELL CYCLE ANALYSIS                  ###
     ### ------------------------------------ ###
     
@@ -1914,7 +2030,7 @@ class IntegratedAnalysis:
         cell_cycle_scores = []
         for set_name, gene_set in zip(phases, [g1pm_features, s_features, g2m_features]):
             self.log_trace(f'  * Scoring {set_name} phase', False)
-            set_score = self.score_gene_set(gene_set, gene_pool, bins, ctrl_genes_num)
+            set_score = self.score_gene_set_module(gene_set, gene_pool, [], bins, ctrl_genes_num)
             if set_score is None:
                 toggle = 0
                 bad_gene_set = set_name
@@ -1935,58 +2051,6 @@ class IntegratedAnalysis:
 
             self.log_trace('All done!')
             self.log_trace(f'  * Cell cycle scores were saved to {out_path}', False)
-    
-    ### ------------------------------------ ###
-
-    def score_gene_set(self, gene_set: list[str], gene_pool: list[str]=[], bins: int=50, ctrl_genes_num: int=50):
-
-        # Subsetting gene_set and gene_list for detected genes
-        gene_set = [gene for gene in gene_set if gene in self.all_genes]
-        gene_pool = [gene for gene in gene_pool if gene in self.all_genes]
-
-        # Making sure that gene_set and gene_pool have len > 0
-        if not len(gene_set):
-            self.log_trace("Error: empty gene_set")
-            return None
-
-        # Checking gene pool
-        if not len(gene_pool):
-            gene_pool = self.all_genes
-
-        # Compute average gene expression levels
-        gene_means = np.array(self.all_data.mean(axis=0)).ravel()
-        
-        # Rank genes based on binned expression level, then for each bin of the genes in the gene_set, pick ctrl_genes random genes for genes with matched binned expression
-        bin_size = len(gene_means) // bins
-        expression_order = np.argsort(np.argsort(gene_means))
-        set_ranks = expression_order[np.isin(self.all_genes, gene_set)].tolist()
-        ctrl_indexes = []
-        for rank in set_ranks:
-            random_pool = np.where((expression_order >= (rank - bin_size // 2)) &
-                                   (expression_order <= (rank + bin_size // 2)) &
-                                   ~(np.isin(expression_order, set_ranks)))[0].tolist()
-            np.random.shuffle(random_pool)
-            ctrl_indexes.extend(random_pool[:ctrl_genes_num])
-        ctrl_indexes = list(set(ctrl_indexes)) # Removing duplicates
-
-        # Computing the mean of scaled expression values of gene_set genes for each cell
-        set_indexes = [self.all_genes.index(g) for g in gene_set if g in self.all_genes]
-        set_means = self.scale_features(csr_array(self.all_data[:, set_indexes])).mean(axis=1)
-        #if self.all_data.shape[0] <= self.max_cells_in_memory:
-        #    set_means = self.scale_features(csr_array(self.all_data[:, set_indexes])).mean(axis=1)
-        #else:
-        #    set_means = np.array([self.scale_features(csr_array(self.all_data[:, g])).reshape(-1) for g in set_indexes]).T.mean(axis=1)
-
-        # Computing the mean of scaled expression values of  ctrl_set genes for each cell
-        ctrl_means = self.scale_features(csr_array(self.all_data[:, ctrl_indexes])).mean(axis=1)
-        #if self.all_data.shape[0] <= self.max_cells_in_memory:
-        #    ctrl_means = self.scale_features(csr_array(self.all_data[:, ctrl_indexes])).mean(axis=1)
-        #else:
-        #    ctrl_means = np.array([self.scale_features(csr_array(self.all_data[:, g])).reshape(-1) for g in ctrl_indexes]).T.mean(axis=1)
-        
-        set_score = set_means - ctrl_means
-        
-        return set_score
 
     ### ------------------------------------ ###
     ### PSEUDOBULK                           ###
